@@ -42,7 +42,7 @@ class FileProcessor(object):
         # Note: at this point, input can be empty if no streams were converted,
         # in which case the original file is our output
         if inputs:
-            if self.output:
+            if not self.output:
                 self.replace_original()
             self.clean_up(inputs)
 
