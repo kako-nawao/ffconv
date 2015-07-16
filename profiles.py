@@ -22,7 +22,7 @@ ROKU = {
     },
     'audio': {
         'codec': 'aac',
-        'channels': '2'
+        'channels': 2
     },
     'subtitle': {
         'codec': 'srt'

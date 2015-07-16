@@ -2,7 +2,7 @@
 import json
 import subprocess
 
-from profiles import ROKU
+import profiles
 
 
 def execute_cmd(cmd, split=True):
@@ -25,8 +25,9 @@ class FileProcessor(object):
     def __init__(self, input, output, profile):
         self.input = input
         self.output = output
-        self.profile = globals().get(profile.upper())
-        if not self.profile:
+        try:
+            self.profile = getattr(profiles, profile.upper())
+        except AttributeError:
             raise ValueError('Profile {} could not be found'.format(profile))
 
     def process(self):
@@ -190,8 +191,8 @@ class AudioProcessor(StreamProcessor):
 
     def __init__(self, input, stream, profile):
         super(AudioProcessor, self).__init__(input, stream, profile)
-        self.channels = str(stream['channels'])
-        self.target_channels = profile[self.media_type]['channels']
+        self.channels = int(stream['channels'])
+        self.target_channels = int(profile[self.media_type]['channels'])
 
     @property
     def must_convert(self):
@@ -202,8 +203,8 @@ class AudioProcessor(StreamProcessor):
         pass
 
     def convert(self):
-        cmd = 'ffmpeg -i {} -map 0:{} -strict experimental -c:a {} -ac:0:{} {} {}'.format(
-            self.input, self.index, self.target_codec, self.index,
+        cmd = 'ffmpeg -i {} -map 0:{} -strict experimental -c:a {} -ac:0 {} {}'.format(
+            self.input, self.index, self.target_codec,
             self.target_channels, self.output
         )
         execute_cmd(cmd)
