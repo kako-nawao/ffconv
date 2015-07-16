@@ -90,11 +90,11 @@ class FileProcessor(object):
         # Construct lists with parameters
         for stream in streams:
             # First, add stream filename to inputs if not there yet
-            if not stream['filename'] in inputs:
-                inputs.append(stream['filename'])
+            if not stream['input'] in inputs:
+                inputs.append(stream['input'])
 
             # Then add mapping (input index must come from filename)
-            maps.append('-map {}:{}'.format(inputs.index(stream['filename']), stream['index']))
+            maps.append('-map {}:{}'.format(inputs.index(stream['input']), stream['index']))
 
             # Finally, add language if available (map index is always last one)
             if stream.get('language'):
