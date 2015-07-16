@@ -60,9 +60,10 @@ class FileProcessorTest(TestCase):
         res = processor.process_streams([])
         self.assertEqual(res, [])
 
-        # Process weird streams, explode
+        # Process weird streams, ignore
         streams = [{'codec_type': 'pr0n', 'codec_name': 'h264', 'index': 0}]
-        self.assertRaises(IndexError, processor.process_streams, streams)
+        res = processor.process_streams(streams)
+        self.assertEqual(res, [])
 
         # Process 1 video only
         streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0}]

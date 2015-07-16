@@ -42,13 +42,15 @@ class FileProcessor(object):
 
         # Note: at this point, input can be empty if no streams were converted,
         # in which case the original file is our output
+        res = {}
         if inputs:
             if not self.output:
                 self.replace_original()
             self.clean_up(inputs)
+            res.update({'streams': len(processed_streams), 'output': self.output})
 
         # Return stats
-        return {'streams': len(processed_streams), 'output': self.output}
+        return res
 
     def probe(self):
         """
@@ -70,11 +72,17 @@ class FileProcessor(object):
         """
         processed_streams = []
         for stream in original_streams:
-            processor_cls = list(filter(lambda x: x.media_type == stream['codec_type'],
-                                        [VideoProcessor, AudioProcessor, SubtitleProcessor]))[0]
-            processor = processor_cls(self.input, stream, self.profile)
-            result = processor.process()
-            processed_streams.append(result)
+            # Find all processors that match media type
+            processor_types = list(filter(lambda x: x.media_type == stream['codec_type'],
+                                          [VideoProcessor, AudioProcessor, SubtitleProcessor]))
+
+            if processor_types:
+                # For now just select the first one that matched media type
+                processor_cls = processor_types[0]
+                processor = processor_cls(self.input, stream, self.profile)
+                result = processor.process()
+                processed_streams.append(result)
+
         return processed_streams
 
     def merge(self, streams):
@@ -158,10 +166,10 @@ class StreamProcessor(object):
         return self.codec != self.target_codec
 
     def clean_up(self):
-        raise NotImplementedError()
+        raise NotImplementedError('{} cannot clean up {} yet.'.format(self.__class__.__name__, self.media_type))
 
     def convert(self):
-        raise NotImplementedError()
+        raise NotImplementedError('{} cannot convert {} yet.'.format(self.__class__.__name__, self.media_type))
 
     def process(self):
         """

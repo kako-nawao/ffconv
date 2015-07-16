@@ -18,6 +18,17 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     processor = FileProcessor(args.input, args.output, args.profile)
-    result = processor.process()
-    print('Done. Processed {streams} streams into {output}'.format(**result))
+    try:
+        result = processor.process()
+
+    except Exception as e:
+        print('Error: {}'.format(e))
+
+    else:
+        msgs = ['Done:']
+        if result:
+            msgs.append('processed {streams} streams into new file {output}.'.format(**result))
+        else:
+            msgs.append('no processing required for input file.')
+        print(' '.join(msgs))
 
