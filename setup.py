@@ -58,7 +58,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ffconv=ffconv.main.process',
+            'ffconv=ffconv.main',
         ],
     },
 )

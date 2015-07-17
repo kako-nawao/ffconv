@@ -16,7 +16,7 @@ parser.add_argument('--output', type=str, help='Name of the merged output file, 
 args = parser.parse_args()
 
 
-def process():
+if __name__ == '__main__':
     processor = FileProcessor(args.input, args.output, args.profile)
     try:
         result = processor.process()
