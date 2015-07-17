@@ -3,7 +3,7 @@ __author__ = 'kako'
 
 import argparse
 
-from process import FileProcessor
+from ffconv.process import FileProcessor
 
 
 parser = argparse.ArgumentParser(description='Convert media files')

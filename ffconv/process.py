@@ -1,8 +1,7 @@
-
 import json
 import subprocess
 
-import profiles
+from ffconv import profiles
 
 
 def execute_cmd(cmd, split=True):
