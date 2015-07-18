@@ -4,7 +4,7 @@ import subprocess
 from ffconv import profiles
 
 
-def execute_cmd(cmd, split=True):
+def execute_cmd(cmd):
     """
     Wrapper around subprocess' Popen/communicate usage pattern, capturing
     output and errors (which are raised).
@@ -12,9 +12,26 @@ def execute_cmd(cmd, split=True):
     :param cmd: shell command as string
     :return: output of command
     """
-    if split:
-        cmd = cmd.split()
-    output = subprocess.check_output(cmd)
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+        try:
+            output = b''
+            for line in iter(process.stdout.readline, b''):
+                if b'Error' in line:
+                    raise ValueError(line.decode('utf-8'))
+                else:
+                    output += line
+
+        except:
+            process.kill()
+            process.wait()
+            raise
+
+        else:
+            retcode = process.poll()
+            if retcode:
+                raise subprocess.CalledProcessError(retcode, process.args, output=output)
+
+    # All good, decode output and return it
     return output.decode('utf-8')
 
 
@@ -57,7 +74,7 @@ class FileProcessor(object):
 
         :return: list of streams data (dicts)
         """
-        cmd = 'ffprobe -v quiet -of json -show_streams {}'.format(self.input)
+        cmd = ['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams', self.input]
         output = execute_cmd(cmd)
         return json.loads(output)['streams']
 
@@ -102,18 +119,24 @@ class FileProcessor(object):
                 inputs.append(stream['input'])
 
             # Then add mapping (input index must come from filename)
-            maps.append('-map {}:{}'.format(inputs.index(stream['input']), stream['index']))
+            maps.append('{}:{}'.format(inputs.index(stream['input']), stream['index']))
 
             # Finally, add language if available (map index is always last one)
             if stream.get('language'):
-                meta.append('-metadata:s:{} language={}'.format(len(maps) - 1, stream['language']))
+                meta.extend(['-metadata:s:{}'.format(len(maps)),
+                             'language={}'.format(stream['language'])])
 
         # Merge inputs if we have more than one (1 means no streams were converted, nothing to do)
         if len(inputs) > 1:
             # Build merge command and execute it
-            cmd = 'ffmpeg -i {} {} -c copy {} {}'.format(
-                ' -i '.join(inputs), ' '.join(maps), ' '.join(meta), self.output or self.tmp_file
-            )
+            cmd = ['ffmpeg']
+            for input in inputs:
+                cmd.extend(['-i', input])
+            for map in maps:
+                cmd.extend(['-map', map])
+            cmd.extend(meta)
+            cmd.extend(['-c', 'copy'])
+            cmd.append(self.output or self.tmp_file)
             execute_cmd(cmd)
 
         # Remove input main input from list of inputs, because we either keep it
@@ -129,7 +152,7 @@ class FileProcessor(object):
 
         :return:
         """
-        cmd = 'mv {} {}'.format(self.tmp_file, self.input)
+        cmd = ['mv', self.tmp_file, self.input]
         execute_cmd(cmd)
         self.output = self.input
 
@@ -140,7 +163,8 @@ class FileProcessor(object):
         :param files: files used as input in the final merge
         :return:
         """
-        cmd = 'rm {}'.format(' '.join(files))
+        cmd = ['rm']
+        cmd.extend(files)
         execute_cmd(cmd)
 
 
@@ -210,22 +234,33 @@ class AudioProcessor(StreamProcessor):
         pass
 
     def convert(self):
-        cmd = 'ffmpeg -i {} -map 0:{} -strict experimental -c:a {} -ac:0 {} {}'.format(
-            self.input, self.index, self.target_codec,
-            self.target_channels, self.output
-        )
+        cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
+               '-strict', 'experimental', '-c:a', self.target_codec, '-ac:0',
+               self.target_channels, self.output]
         execute_cmd(cmd)
 
 
 class SubtitleProcessor(StreamProcessor):
     media_type = 'subtitle'
+    encodings = ('utf-8', 'iso-8859-1')
 
     def clean_up(self):
         cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
                '-e', r"s/<I>/<i>/g", '-e', r"s/<\/I>/<\/i>/g", self.output]
-        execute_cmd(cmd, split=False)
+        execute_cmd(cmd)
 
     def convert(self):
-        cmd = 'ffmpeg -i {} -map 0:{} {}'.format(self.input, self.index, self.output)
-        execute_cmd(cmd)
+        index = '0:{}'.format(self.index)
+        for encoding in self.encodings:
+            try:
+                cmd = ['ffmpeg', '-sub_charenc', encoding, '-i', self.input, '-map', index, self.output]
+                execute_cmd(cmd)
+                return
+
+            except Exception as e:
+                cmd = ['rm', self.output]
+                execute_cmd(cmd)
+                print('Failed to extract subtitle stream {} with encoding {}...'.format(index, encoding))
+
+        raise ValueError('Could not extract stream {}'.format(index))
 

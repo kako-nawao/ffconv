@@ -18,6 +18,7 @@ args = parser.parse_args()
 
 def process():
     processor = FileProcessor(args.input, args.output, args.profile)
+    print('Processing file "{}" with profile {} into {}'.format(args.input, args.profile, args.output))
     try:
         result = processor.process()
 
