@@ -74,7 +74,7 @@ class FileProcessor(object):
 
         :return: list of streams data (dicts)
         """
-        cmd = ['ffprobe', '-v', 'quiet', '-of', 'json', '-show_streams', self.input]
+        cmd = ['ffprobe', '-v', 'quiet', '-show_streams', '-of', 'json', self.input]
         output = execute_cmd(cmd)
         return json.loads(output)['streams']
 
@@ -123,7 +123,7 @@ class FileProcessor(object):
 
             # Finally, add language if available (map index is always last one)
             if stream.get('language'):
-                meta.extend(['-metadata:s:{}'.format(len(maps)),
+                meta.extend(['-metadata:s:{}'.format(len(maps) - 1),
                              'language={}'.format(stream['language'])])
 
         # Merge inputs if we have more than one (1 means no streams were converted, nothing to do)
@@ -235,8 +235,8 @@ class AudioProcessor(StreamProcessor):
 
     def convert(self):
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
-               '-strict', 'experimental', '-c:a', self.target_codec, '-ac:0',
-               self.target_channels, self.output]
+               '-strict', '-2', '-c:a', self.target_codec, '-ac:0',
+               str(self.target_channels), self.output]
         execute_cmd(cmd)
 
 

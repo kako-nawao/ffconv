@@ -62,7 +62,8 @@ class AudioProcessorTest(TestCase):
         stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac', 'channels': 6, 'tags': {'LANGUAGE': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         processor.convert()
-        cmd = 'ffmpeg -i some-film.mkv -map 0:1 -strict experimental -c:a aac -ac:0 2 audio-1.aac'
+        cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-strict',
+               '-2', '-c:a', 'aac', '-ac:0', '2', 'audio-1.aac']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.AudioProcessor.convert', MagicMock())
@@ -110,7 +111,8 @@ class SubtitleProcessorTest(TestCase):
         stream = {'index': 5, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.convert()
-        cmd = 'ffmpeg -i some-film.mkv -map 0:5 subtitle-5.srt'
+        cmd = ['ffmpeg', '-sub_charenc', 'utf-8', '-i', 'some-film.mkv',
+               '-map', '0:5', 'subtitle-5.srt']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
@@ -123,7 +125,7 @@ class SubtitleProcessorTest(TestCase):
         processor.clean_up()
         cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
                '-e', r"s/<I>/<i>/g", '-e', r"s/<\/I>/<\/i>/g", 'subtitle-6.srt']
-        execute_cmd.assert_called_once_with(cmd, split=False)
+        execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.SubtitleProcessor.convert', MagicMock())
     @patch('ffconv.process.SubtitleProcessor.clean_up', MagicMock())

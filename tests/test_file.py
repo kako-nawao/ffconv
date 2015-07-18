@@ -1,10 +1,36 @@
 __author__ = 'kako'
 
+import subprocess
+
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from ffconv import profiles
-from ffconv.process import FileProcessor, VideoProcessor, AudioProcessor, SubtitleProcessor
+from ffconv.process import FileProcessor, VideoProcessor, AudioProcessor, SubtitleProcessor, execute_cmd
+
+
+class ExecuteCommandTest(TestCase):
+
+    @patch('subprocess.Popen.__enter__')
+    def test_errors(self, ctx_mgr):
+        ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=[b''])),
+                                         poll=MagicMock(return_value=0))
+
+        # Return value 0, no error, read output
+        ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=[b'lala', b''])),
+                                         poll=MagicMock(return_value=0))
+        output = execute_cmd(['ls', '-al'])
+        self.assertEqual(output, 'lala')
+
+        # Return value 1, raise CalledProcessError
+        ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=[b'lala', b''])),
+                                         poll=MagicMock(return_value=1))
+        self.assertRaises(subprocess.CalledProcessError, execute_cmd, ['ls', '-al'])
+
+        # Return value 0 with errors, raise ValueError
+        ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=[b'lala', b'Error', b''])),
+                                         poll=MagicMock(return_value=1))
+        self.assertRaises(ValueError, execute_cmd, ['ls', '-al'])
 
 
 class FileProcessorTest(TestCase):
@@ -34,14 +60,22 @@ class FileProcessorTest(TestCase):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
         # Check correct command construction
-        with patch('ffconv.process.execute_cmd', MagicMock(return_value='{"streams": []}')) as execute_cmd:
+        with patch('ffconv.process.execute_cmd') as execute_cmd:
+            execute_cmd.return_value = '{"streams": []}'
+
             self.assertFalse(execute_cmd.called)
             processor.probe()
-            execute_cmd.assert_called_once_with('ffprobe -v quiet -of json -show_streams input.mkv')
+            cmd = ['ffprobe', '-v', 'quiet', '-show_streams', '-of', 'json', 'input.mkv']
+            execute_cmd.assert_called_once_with(cmd)
 
         # Check correct result parsing
-        cmd_res = b'{"streams": [{"codec_type": "video", "codec_name": "h264", "index": 0}]}'
-        with patch('subprocess.check_output', MagicMock(return_value=cmd_res)):
+        with patch('subprocess.Popen.__enter__') as ctx_mgr:
+            # Mock the process's stdout.readline and poll methods
+            res = [b'{"streams": [{"codec_type": "video", "codec_name": "h264", "index": 0}]}', b'']
+            ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=res)),
+                                             poll=MagicMock(return_value=0))
+
+            # Run probe, make sure it returns the correct result
             res = processor.probe()
             self.assertEqual(res, [{"codec_type": "video", "codec_name": "h264", "index": 0}])
 
@@ -107,18 +141,18 @@ class FileProcessorTest(TestCase):
                    {'input': 'subtitle-3.srt', 'index': 0, 'language': 'eng'},
                    {'input': 'subtitle-4.srt', 'index': 0, 'language': 'spa'}]
         res = processor.merge(streams)
-        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
-        cmd = ' '.join([
-            'ffmpeg -i input.mkv -i audio-1.aac -i subtitle-3.srt -i subtitle-4.srt -map 0:0 -map 1:0',
-            '-map 0:2 -map 2:0 -map 3:0 -c copy -metadata:s:1 language=jap -metadata:s:2 language=eng',
-            '-metadata:s:3 language=eng -metadata:s:4 language=spa output.mkv'
-        ])
+        self.assertEqual(res, ['audio-1.aac', 'subtitle-g3.srt', 'subtitle-4.srt'])
+        cmd = ['ffmpeg', '-i', 'input.mkv', '-i', 'audio-1.aac', '-i', 'subtitle-3.srt',
+               '-i', 'subtitle-4.srt', '-map', '0:0', '-map', '1:0', '-map', '0:2',
+               '-map', '2:0', '-map', '3:0', '-metadata:s:1', 'language=jap',
+               '-metadata:s:2', 'language=eng', '-metadata:s:3', 'language=eng',
+               '-metadata:s:4', 'language=spa', '-c', 'copy', 'output.mkv']
         execute_cmd.assert_called_once_with(cmd)
         execute_cmd.reset_mock()
 
         # Do the same without output, should do the same but use tmp.mkv as output
         processor.output = None
-        cmd = cmd.replace('output.mkv', 'tmp.mkv')
+        cmd[-1] = 'tmp.mkv'
         res = processor.merge(streams)
         self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
         execute_cmd.assert_called_once_with(cmd)
@@ -129,7 +163,8 @@ class FileProcessorTest(TestCase):
 
         # Replace original, make sure output is updated
         processor.replace_original()
-        execute_cmd.assert_called_once_with('mv tmp.mkv another-input.mkv')
+        cmd = ['mv', 'tmp.mkv', 'another-input.mkv']
+        execute_cmd.assert_called_once_with(cmd)
         self.assertEqual(processor.output, 'another-input.mkv')
 
     @patch('ffconv.process.execute_cmd')
@@ -139,7 +174,8 @@ class FileProcessorTest(TestCase):
         # Clean up, make sure all files are removed
         inputs = ['audio-2.aac', 'audio-4.aac', 'subtitle-5.srt']
         processor.clean_up(inputs)
-        execute_cmd.assert_called_once_with('rm audio-2.aac audio-4.aac subtitle-5.srt')
+        cmd = ['rm', 'audio-2.aac', 'audio-4.aac', 'subtitle-5.srt']
+        execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
     @patch('ffconv.process.FileProcessor.probe', MagicMock(return_value=[
