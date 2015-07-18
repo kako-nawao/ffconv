@@ -18,10 +18,22 @@ args = parser.parse_args()
 
 def process():
     print('ffconv 0.0.1 -----------')
+
     processor = FileProcessor(args.input, args.output, args.profile)
     try:
         processor.process()
 
     except Exception as e:
-        print('Error: {}. Stopping.'.format(e))
+        print('Error: {}'.format(e))
+        fname = 'ffconv-failed.log'
+        return_code = 1
+
+    else:
+        fname = 'ffconv-success.log'
+        return_code = 0
+
+    with open(fname, 'a') as f:
+        f.write('{}\n'.format(args.input))
+
     print('')
+    exit(return_code)

@@ -35,6 +35,11 @@ def execute_cmd(cmd):
     return output.decode('utf-8')
 
 
+def print_in_tree(msg, level=0):
+    parts = [' ' * (2 * level - 1), '- ' if level else '', msg]
+    print(''.join(parts))
+
+
 class FileProcessor(object):
     tmp_file = 'tmp.mkv'
 
@@ -45,6 +50,7 @@ class FileProcessor(object):
             self.profile = getattr(profiles, profile.upper())
         except AttributeError:
             raise ValueError('Profile {} could not be found'.format(profile))
+        self.error = None
 
     def process(self):
         """
@@ -52,27 +58,28 @@ class FileProcessor(object):
 
         :return: processing stats
         """
-        print('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
-        print(' - Probing...')
+        print_in_tree('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
+        print_in_tree('Probing...', 1)
         original_streams = self.probe()
-        print(' - Processing streams...')
+        print_in_tree('Processing streams...', 1)
         processed_streams = self.process_streams(original_streams)
-        print(' - Merging streams into output...')
+        print_in_tree('Merging streams into output...', 1)
         inputs = self.merge(processed_streams)
 
         # Note: at this point, input can be empty if no streams were converted,
         # in which case the original file is our output
-        res = {}
         if inputs:
-            print(' - Cleaning temporary files...')
+            print_in_tree('Cleaning temporary files...', 1)
             if not self.output:
                 self.replace_original()
             self.clean_up(inputs)
-            res.update({'streams': len(processed_streams), 'output': self.output})
 
-        # Return stats
-        print('Done')
-        return res
+        # If we had an error, raise it again
+        if self.error:
+            raise self.error
+
+        print_in_tree('Done')
+        return {'streams': len(processed_streams), 'output': self.output}
 
     def probe(self):
         """
@@ -105,7 +112,7 @@ class FileProcessor(object):
                 result = processor.process()
                 processed_streams.append(result)
             else:
-                print('   - Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']))
+                print_in_tree('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
 
         return processed_streams
 
@@ -144,8 +151,15 @@ class FileProcessor(object):
                 cmd.extend(['-map', map])
             cmd.extend(meta)
             cmd.extend(['-c', 'copy'])
-            cmd.append(self.output or self.tmp_file)
-            execute_cmd(cmd)
+            cur_output = self.output or self.tmp_file
+            cmd.append(cur_output)
+
+            try:
+                execute_cmd(cmd)
+            except Exception as e:
+                print_in_tree('Error: {}'.format(e), 2)
+                self.error = e
+                inputs.append(cur_output)
 
         # Remove input main input from list of inputs, because we either keep it
         # or we replace it, in which case we'll "mv <tmp> <input>" anyway
@@ -208,17 +222,17 @@ class StreamProcessor(object):
 
         :return: processed stream data
         """
-        print('   - Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec))
+        print_in_tree('Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec), 2)
         if self.must_convert:
-            print('     - Converting...')
+            print_in_tree('Converting...', 3)
             self.convert()
-            print('     - Cleaning up file...')
+            print_in_tree('Cleaning up file...', 3)
             self.clean_up()
             self.input = self.output
             self.index = 0
-            print('   - Done')
+            print_in_tree('Done', 2)
         else:
-            print('     - Skipping, no conversion required')
+            print_in_tree('Skipping, no conversion required', 3)
 
         res = {'input': self.input, 'index': self.index}
         if self.language:

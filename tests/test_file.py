@@ -155,7 +155,15 @@ class FileProcessorTest(TestCase):
         cmd[-1] = 'tmp.mkv'
         res = processor.merge(streams)
         self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
+        self.assertEqual(processor.error, None)
         execute_cmd.assert_called_once_with(cmd)
+        execute_cmd.reset_mock()
+
+        # Simulate failure, should add output to cleanup and update error
+        execute_cmd.side_effect = ValueError('Something failed')
+        res = processor.merge(streams)
+        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt', 'tmp.mkv'])
+        self.assertEqual(type(processor.error), ValueError)
 
     @patch('ffconv.process.execute_cmd')
     def test_replace_original(self, execute_cmd):
