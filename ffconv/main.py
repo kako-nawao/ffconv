@@ -17,19 +17,11 @@ args = parser.parse_args()
 
 
 def process():
+    print('ffconv 0.0.1 -----------')
     processor = FileProcessor(args.input, args.output, args.profile)
-    print('Processing file "{}" with profile {} into {}'.format(args.input, args.profile, args.output))
     try:
-        result = processor.process()
+        processor.process()
 
     except Exception as e:
-        print('Error: {}'.format(e))
-
-    else:
-        msgs = ['Done:']
-        if result:
-            msgs.append('processed {streams} streams into new file {output}.'.format(**result))
-        else:
-            msgs.append('no processing required for input file.')
-        print(' '.join(msgs))
-
+        print('Error: {}. Stopping.'.format(e))
+    print('')

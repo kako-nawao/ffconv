@@ -52,20 +52,26 @@ class FileProcessor(object):
 
         :return: processing stats
         """
+        print('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
+        print(' - Probing...')
         original_streams = self.probe()
+        print(' - Processing streams...')
         processed_streams = self.process_streams(original_streams)
+        print(' - Merging streams into output...')
         inputs = self.merge(processed_streams)
 
         # Note: at this point, input can be empty if no streams were converted,
         # in which case the original file is our output
         res = {}
         if inputs:
+            print(' - Cleaning temporary files...')
             if not self.output:
                 self.replace_original()
             self.clean_up(inputs)
             res.update({'streams': len(processed_streams), 'output': self.output})
 
         # Return stats
+        print('Done')
         return res
 
     def probe(self):
@@ -98,6 +104,8 @@ class FileProcessor(object):
                 processor = processor_cls(self.input, stream, self.profile)
                 result = processor.process()
                 processed_streams.append(result)
+            else:
+                print('   - Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']))
 
         return processed_streams
 
@@ -200,16 +208,21 @@ class StreamProcessor(object):
 
         :return: processed stream data
         """
+        print('   - Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec))
         if self.must_convert:
+            print('     - Converting...')
             self.convert()
+            print('     - Cleaning up file...')
             self.clean_up()
             self.input = self.output
             self.index = 0
+            print('   - Done')
+        else:
+            print('     - Skipping, no conversion required')
 
         res = {'input': self.input, 'index': self.index}
         if self.language:
             res['language'] = self.language
-
         return res
 
 
@@ -260,7 +273,6 @@ class SubtitleProcessor(StreamProcessor):
             except Exception as e:
                 cmd = ['rm', self.output]
                 execute_cmd(cmd)
-                print('Failed to extract subtitle stream {} with encoding {}...'.format(index, encoding))
 
         raise ValueError('Could not extract stream {}'.format(index))
 

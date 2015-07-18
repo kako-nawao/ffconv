@@ -17,6 +17,7 @@ output:
 """
 
 ROKU = {
+    'name': 'Roku',
     'video': {
         'codec': 'h264'
     },

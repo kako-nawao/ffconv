@@ -141,7 +141,7 @@ class FileProcessorTest(TestCase):
                    {'input': 'subtitle-3.srt', 'index': 0, 'language': 'eng'},
                    {'input': 'subtitle-4.srt', 'index': 0, 'language': 'spa'}]
         res = processor.merge(streams)
-        self.assertEqual(res, ['audio-1.aac', 'subtitle-g3.srt', 'subtitle-4.srt'])
+        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
         cmd = ['ffmpeg', '-i', 'input.mkv', '-i', 'audio-1.aac', '-i', 'subtitle-3.srt',
                '-i', 'subtitle-4.srt', '-map', '0:0', '-map', '1:0', '-map', '0:2',
                '-map', '2:0', '-map', '3:0', '-metadata:s:1', 'language=jap',
