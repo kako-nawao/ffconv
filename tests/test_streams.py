@@ -63,7 +63,7 @@ class AudioProcessorTest(TestCase):
         processor = AudioProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-c:a', 'mp3',
-               '-ab', '192k', '-ac:0', '2', 'audio-1.mp3']
+               '-q:a', '2', '-ac:0', '2', 'audio-1.mp3']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.AudioProcessor.convert', MagicMock())

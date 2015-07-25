@@ -269,7 +269,7 @@ class AudioProcessor(StreamProcessor):
     def __init__(self, input, stream, profile):
         super(AudioProcessor, self).__init__(input, stream, profile)
         self.channels = int(stream['channels'])
-        self.target_bitrate = profile[self.media_type]['bitrate']
+        self.target_quality = profile[self.media_type]['quality']
         self.target_channels = int(profile[self.media_type]['channels'])
 
     @property
@@ -282,8 +282,8 @@ class AudioProcessor(StreamProcessor):
 
     def convert(self):
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
-               '-c:a', self.target_codec, '-ab', self.target_bitrate, '-ac:0',
-               str(self.target_channels), self.output]
+               '-c:a', self.target_codec, '-q:a', str(self.target_quality),
+               '-ac:0', str(self.target_channels), self.output]
         execute_cmd(cmd)
 
 

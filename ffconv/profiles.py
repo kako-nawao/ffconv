@@ -24,7 +24,7 @@ ROKU = {
     'audio': {
         'codecs': ['mp3', 'aac', 'flac'],
         'channels': 2,
-        'bitrate': '192k'
+        'quality': 2
     },
     'subtitle': {
         'codecs': ['srt']
