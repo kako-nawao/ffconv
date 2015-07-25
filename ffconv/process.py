@@ -1,5 +1,4 @@
 import json
-import logging
 import subprocess
 
 from ffconv import profiles
@@ -38,7 +37,7 @@ def execute_cmd(cmd):
 
 def log(msg, level=0):
     parts = [' ' * (2 * level - 1), '- ' if level else '', msg]
-    logging.info(''.join(parts))
+    print(''.join(parts))
 
 
 class FileProcessor(object):
@@ -60,18 +59,29 @@ class FileProcessor(object):
         :return: processing stats
         """
         log('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
+
+        # First step, probe for file streams
         log('Probing...', 1)
         original_streams = self.probe()
+
+        # Process streams
         log('Processing streams...', 1)
         processed_streams = self.process_streams(original_streams)
-        log('Merging streams into output...', 1)
-        inputs = self.merge(processed_streams)
 
-        # Note: at this point, input can be empty if no streams were converted,
-        # in which case the original file is our output
+        if self.error:
+            # Get inputs to remove and reset output
+            inputs = {s['input'] for s in processed_streams}.difference([self.input])
+        else:
+            # If we have no errors, merge them
+            log('Merging streams into output...', 1)
+            inputs = self.merge(processed_streams)
+
+        # Clean up if we have inputs
+        # Note: input can be empty if no streams were converted, in which case
+        # the original file is our output, so we do nothing
         if inputs:
             log('Cleaning temporary files...', 1)
-            if not self.output:
+            if not (self.output or self.error):
                 self.replace_original()
             self.clean_up(inputs)
 
@@ -101,19 +111,25 @@ class FileProcessor(object):
         :return: list of processed streams data
         """
         processed_streams = []
-        for stream in original_streams:
-            # Find all processors that match media type
-            processor_types = list(filter(lambda x: x.media_type == stream['codec_type'],
-                                          [VideoProcessor, AudioProcessor, SubtitleProcessor]))
+        try:
+            for stream in original_streams:
+                # Find all processors that match media type
+                processor_types = list(filter(lambda x: x.media_type == stream['codec_type'],
+                                              [VideoProcessor, AudioProcessor, SubtitleProcessor]))
 
-            if processor_types:
-                # For now just select the first one that matched media type
-                processor_cls = processor_types[0]
-                processor = processor_cls(self.input, stream, self.profile)
-                result = processor.process()
-                processed_streams.append(result)
-            else:
-                log('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
+                if processor_types:
+                    # For now just select the first one that matched media type
+                    processor_cls = processor_types[0]
+                    processor = processor_cls(self.input, stream, self.profile)
+                    result = processor.process()
+                    processed_streams.append(result)
+                else:
+                    log('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
+
+        except Exception as e:
+            # This means some stream could not be processed, clean up and stop
+            log('Error: {}'.format(e), 2)
+            self.error = e
 
         return processed_streams
 
@@ -233,6 +249,7 @@ class StreamProcessor(object):
             self.input = self.output
             self.index = 0
             log('Done', 2)
+
         else:
             log('Skipping, no conversion required', 3)
 

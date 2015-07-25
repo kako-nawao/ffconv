@@ -87,7 +87,7 @@ class FileProcessorTest(TestCase):
     @patch('ffconv.process.SubtitleProcessor.process',
            MagicMock(side_effect=[{'input': 'input.mkv', 'index': 3, 'language': 'spa'},
                                   {'input': 'input.mkv', 'index': 4, 'language': 'por'}]))
-    def test_process_streams(self):
+    def test_process_streams_success(self):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
         # Process empty streams list
@@ -119,6 +119,29 @@ class FileProcessorTest(TestCase):
         self.assertEqual(VideoProcessor.process.call_count, 1)
         self.assertEqual(AudioProcessor.process.call_count, 2)
         self.assertEqual(SubtitleProcessor.process.call_count, 2)
+
+    @patch('ffconv.process.VideoProcessor.process',
+           MagicMock(return_value={'input': 'input.mkv', 'index': 0}))
+    @patch('ffconv.process.AudioProcessor.process',
+           MagicMock(side_effect=[{'input': 'input.mkv', 'index': 1, 'language': 'jap'},
+                                  {'input': 'input.mkv', 'index': 2, 'language': 'eng'}]))
+    @patch('ffconv.process.SubtitleProcessor.process',
+           MagicMock(side_effect=ValueError('Could not convert ass!')))
+    def test_process_streams_error(self):
+        processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
+
+        # Process empty streams list
+        res = processor.process_streams([])
+        self.assertEqual(res, [])
+
+        # Process 1 video, 2 audio, 2 subs
+        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0},
+                   {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 2},
+                   {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 6},
+                   {'codec_type': 'subtitle', 'codec_name': 'srt', 'index': 0},
+                   {'codec_type': 'subtitle', 'codec_name': 'srt', 'index': 0}]
+        res = processor.process_streams(streams)
+        self.assertEqual(type(processor.error), ValueError)
 
     @patch('ffconv.process.execute_cmd')
     def test_merge(self, execute_cmd):
