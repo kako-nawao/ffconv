@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 
 from ffconv import profiles
@@ -35,9 +36,9 @@ def execute_cmd(cmd):
     return output.decode('utf-8')
 
 
-def print_in_tree(msg, level=0):
+def log(msg, level=0):
     parts = [' ' * (2 * level - 1), '- ' if level else '', msg]
-    print(''.join(parts))
+    logging.info(''.join(parts))
 
 
 class FileProcessor(object):
@@ -58,18 +59,18 @@ class FileProcessor(object):
 
         :return: processing stats
         """
-        print_in_tree('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
-        print_in_tree('Probing...', 1)
+        log('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
+        log('Probing...', 1)
         original_streams = self.probe()
-        print_in_tree('Processing streams...', 1)
+        log('Processing streams...', 1)
         processed_streams = self.process_streams(original_streams)
-        print_in_tree('Merging streams into output...', 1)
+        log('Merging streams into output...', 1)
         inputs = self.merge(processed_streams)
 
         # Note: at this point, input can be empty if no streams were converted,
         # in which case the original file is our output
         if inputs:
-            print_in_tree('Cleaning temporary files...', 1)
+            log('Cleaning temporary files...', 1)
             if not self.output:
                 self.replace_original()
             self.clean_up(inputs)
@@ -78,7 +79,7 @@ class FileProcessor(object):
         if self.error:
             raise self.error
 
-        print_in_tree('Done')
+        log('Done')
         return {'streams': len(processed_streams), 'output': self.output}
 
     def probe(self):
@@ -112,7 +113,7 @@ class FileProcessor(object):
                 result = processor.process()
                 processed_streams.append(result)
             else:
-                print_in_tree('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
+                log('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
 
         return processed_streams
 
@@ -157,7 +158,7 @@ class FileProcessor(object):
             try:
                 execute_cmd(cmd)
             except Exception as e:
-                print_in_tree('Error: {}'.format(e), 2)
+                log('Error: {}'.format(e), 2)
                 self.error = e
                 inputs.append(cur_output)
 
@@ -198,7 +199,8 @@ class StreamProcessor(object):
         self.index = stream['index']
         self.codec = stream['codec_name']
         self.language = stream.get('tags', {}).get('LANGUAGE')
-        self.target_codec = profile[self.media_type]['codec']
+        self.allowed_codecs = profile[self.media_type]['codecs']
+        self.target_codec = self.allowed_codecs[0]
         self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_codec)
 
     @property
@@ -208,7 +210,7 @@ class StreamProcessor(object):
 
         :return:
         """
-        return self.codec != self.target_codec
+        return self.codec not in self.allowed_codecs
 
     def clean_up(self):
         raise NotImplementedError('{} cannot clean up {} yet.'.format(self.__class__.__name__, self.media_type))
@@ -222,17 +224,17 @@ class StreamProcessor(object):
 
         :return: processed stream data
         """
-        print_in_tree('Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec), 2)
+        log('Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec), 2)
         if self.must_convert:
-            print_in_tree('Converting...', 3)
+            log('Converting...', 3)
             self.convert()
-            print_in_tree('Cleaning up file...', 3)
+            log('Cleaning up file...', 3)
             self.clean_up()
             self.input = self.output
             self.index = 0
-            print_in_tree('Done', 2)
+            log('Done', 2)
         else:
-            print_in_tree('Skipping, no conversion required', 3)
+            log('Skipping, no conversion required', 3)
 
         res = {'input': self.input, 'index': self.index}
         if self.language:
@@ -250,6 +252,7 @@ class AudioProcessor(StreamProcessor):
     def __init__(self, input, stream, profile):
         super(AudioProcessor, self).__init__(input, stream, profile)
         self.channels = int(stream['channels'])
+        self.target_bitrate = profile[self.media_type]['bitrate']
         self.target_channels = int(profile[self.media_type]['channels'])
 
     @property
@@ -262,7 +265,7 @@ class AudioProcessor(StreamProcessor):
 
     def convert(self):
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
-               '-strict', '-2', '-c:a', self.target_codec, '-ac:0',
+               '-c:a', self.target_codec, '-ab', self.target_bitrate, '-ac:0',
                str(self.target_channels), self.output]
         execute_cmd(cmd)
 

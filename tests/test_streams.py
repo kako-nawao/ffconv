@@ -29,7 +29,7 @@ class VideoProcessorTest(TestCase):
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264'}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input' : 'some-film.mkv', 'index': 7})
+        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 7})
 
         # Attempt to process xvid, not implemented error
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid'}
@@ -41,16 +41,16 @@ class AudioProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'mp3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
 
         # Init, make sure all attrs are set properly
         processor = AudioProcessor(input, stream, profile)
         self.assertEqual(processor.input, 'some-film.mkv')
         self.assertEqual(processor.index, 3)
-        self.assertEqual(processor.codec, 'mp3')
+        self.assertEqual(processor.codec, 'ac3')
         self.assertEqual(processor.language, 'por')
-        self.assertEqual(processor.target_codec, 'aac')
-        self.assertEqual(processor.output, 'audio-3.aac')
+        self.assertEqual(processor.target_codec, 'mp3')
+        self.assertEqual(processor.output, 'audio-3.mp3')
         self.assertEqual(processor.channels, 2)
         self.assertEqual(processor.target_channels, 2)
 
@@ -62,8 +62,8 @@ class AudioProcessorTest(TestCase):
         stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac', 'channels': 6, 'tags': {'LANGUAGE': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         processor.convert()
-        cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-strict',
-               '-2', '-c:a', 'aac', '-ac:0', '2', 'audio-1.aac']
+        cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-c:a', 'mp3',
+               '-ab', '192k', '-ac:0', '2', 'audio-1.mp3']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.AudioProcessor.convert', MagicMock())
@@ -80,10 +80,10 @@ class AudioProcessorTest(TestCase):
         self.assertFalse(processor.clean_up.called)
 
         # Attempt mp3 process, should convert
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'mp3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'audio-1.aac', 'index': 0, 'language': 'por'})
+        self.assertEqual(res, {'input': 'audio-1.mp3', 'index': 0, 'language': 'por'})
         self.assertTrue(processor.convert.called)
         self.assertTrue(processor.clean_up.called)
 

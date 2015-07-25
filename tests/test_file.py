@@ -136,13 +136,13 @@ class FileProcessorTest(TestCase):
 
         # Merge streams with 3 conversions, should return those three
         streams = [{'input': 'input.mkv', 'index': 0},
-                   {'input': 'audio-1.aac', 'index': 0, 'language': 'jap'},
+                   {'input': 'audio-1.mp3', 'index': 0, 'language': 'jap'},
                    {'input': 'input.mkv', 'index': 2, 'language': 'eng'},
                    {'input': 'subtitle-3.srt', 'index': 0, 'language': 'eng'},
                    {'input': 'subtitle-4.srt', 'index': 0, 'language': 'spa'}]
         res = processor.merge(streams)
-        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
-        cmd = ['ffmpeg', '-i', 'input.mkv', '-i', 'audio-1.aac', '-i', 'subtitle-3.srt',
+        self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt'])
+        cmd = ['ffmpeg', '-i', 'input.mkv', '-i', 'audio-1.mp3', '-i', 'subtitle-3.srt',
                '-i', 'subtitle-4.srt', '-map', '0:0', '-map', '1:0', '-map', '0:2',
                '-map', '2:0', '-map', '3:0', '-metadata:s:1', 'language=jap',
                '-metadata:s:2', 'language=eng', '-metadata:s:3', 'language=eng',
@@ -154,7 +154,7 @@ class FileProcessorTest(TestCase):
         processor.output = None
         cmd[-1] = 'tmp.mkv'
         res = processor.merge(streams)
-        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt'])
+        self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt'])
         self.assertEqual(processor.error, None)
         execute_cmd.assert_called_once_with(cmd)
         execute_cmd.reset_mock()
@@ -162,7 +162,7 @@ class FileProcessorTest(TestCase):
         # Simulate failure, should add output to cleanup and update error
         execute_cmd.side_effect = ValueError('Something failed')
         res = processor.merge(streams)
-        self.assertEqual(res, ['audio-1.aac', 'subtitle-3.srt', 'subtitle-4.srt', 'tmp.mkv'])
+        self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt', 'tmp.mkv'])
         self.assertEqual(type(processor.error), ValueError)
 
     @patch('ffconv.process.execute_cmd')
@@ -180,9 +180,9 @@ class FileProcessorTest(TestCase):
         processor = FileProcessor('another-input.mkv', 'output.mkv', 'roku')
 
         # Clean up, make sure all files are removed
-        inputs = ['audio-2.aac', 'audio-4.aac', 'subtitle-5.srt']
+        inputs = ['audio-2.mp3', 'audio-4.mp3', 'subtitle-5.srt']
         processor.clean_up(inputs)
-        cmd = ['rm', 'audio-2.aac', 'audio-4.aac', 'subtitle-5.srt']
+        cmd = ['rm', 'audio-2.mp3', 'audio-4.mp3', 'subtitle-5.srt']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
