@@ -32,7 +32,7 @@ def execute_cmd(cmd):
                 raise subprocess.CalledProcessError(retcode, process.args, output=output)
 
     # All good, decode output and return it
-    return output.decode('utf-8')
+    return output.decode('utf-8').lower()
 
 
 def log(msg, level=0):
@@ -214,7 +214,9 @@ class StreamProcessor(object):
         self.input = input
         self.index = stream['index']
         self.codec = stream['codec_name']
-        self.language = stream.get('tags', {}).get('LANGUAGE')
+        self.language = stream.get('tags', {}).get('language')
+        if self.language == 'und':
+            self.language = None
         self.allowed_codecs = profile[self.media_type]['codecs']
         self.target_codec = self.allowed_codecs[0]
         self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_codec)
@@ -289,7 +291,10 @@ class AudioProcessor(StreamProcessor):
 
 class SubtitleProcessor(StreamProcessor):
     media_type = 'subtitle'
-    encodings = ('utf-8', 'iso-8859-1')
+
+    def __init__(self, input, stream, profile):
+        super(SubtitleProcessor, self).__init__(input, stream, profile)
+        self.target_encodings = profile[self.media_type]['encodings']
 
     def clean_up(self):
         cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
@@ -298,7 +303,7 @@ class SubtitleProcessor(StreamProcessor):
 
     def convert(self):
         index = '0:{}'.format(self.index)
-        for encoding in self.encodings:
+        for encoding in self.target_encodings:
             try:
                 cmd = ['ffmpeg', '-sub_charenc', encoding, '-i', self.input, '-map', index, self.output]
                 execute_cmd(cmd)

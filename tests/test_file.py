@@ -71,13 +71,18 @@ class FileProcessorTest(TestCase):
         # Check correct result parsing
         with patch('subprocess.Popen.__enter__') as ctx_mgr:
             # Mock the process's stdout.readline and poll methods
-            res = [b'{"streams": [{"codec_type": "video", "codec_name": "h264", "index": 0}]}', b'']
+            res = [b'{"streams": [',
+                   b'{"codec_type": "video", "codec_name": "h264", "index": 0},',
+                   b'{"codec_type": "AUDIO", "codec_name": "MP3", "index": 1, "tags": {"LANGUAGE": "POR"}}',
+                   b']}',
+                   b'']
             ctx_mgr.return_value = MagicMock(stdout=MagicMock(readline=MagicMock(side_effect=res)),
                                              poll=MagicMock(return_value=0))
 
             # Run probe, make sure it returns the correct result
             res = processor.probe()
-            self.assertEqual(res, [{"codec_type": "video", "codec_name": "h264", "index": 0}])
+            self.assertEqual(res, [{"codec_type": "video", "codec_name": "h264", "index": 0},
+                                   {"codec_type": "audio", "codec_name": "mp3", "index": 1, "tags": {"language": "por"}}])
 
     @patch('ffconv.process.VideoProcessor.process',
            MagicMock(return_value={'input': 'input.mkv', 'index': 0}))

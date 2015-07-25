@@ -27,6 +27,7 @@ ROKU = {
         'quality': 2
     },
     'subtitle': {
-        'codecs': ['srt']
+        'codecs': ['srt'],
+        'encodings': ['utf-8', 'iso-8859-1']
     }
 }

@@ -41,7 +41,7 @@ class AudioProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'language': 'por'}}
 
         # Init, make sure all attrs are set properly
         processor = AudioProcessor(input, stream, profile)
@@ -59,7 +59,7 @@ class AudioProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac', 'channels': 6, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac', 'channels': 6, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-c:a', 'mp3',
@@ -72,7 +72,7 @@ class AudioProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, nothing to do
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac', 'channels': 2, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 1, 'language': 'por'})
@@ -80,7 +80,7 @@ class AudioProcessorTest(TestCase):
         self.assertFalse(processor.clean_up.called)
 
         # Attempt mp3 process, should convert
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'audio-1.mp3', 'index': 0, 'language': 'por'})
@@ -92,7 +92,7 @@ class SubtitleProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
 
         # Init, make sure all attrs are set properly
         processor = SubtitleProcessor(input, stream, profile)
@@ -108,7 +108,7 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 5, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 5, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-sub_charenc', 'utf-8', '-i', 'some-film.mkv',
@@ -120,7 +120,7 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 6, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 6, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.clean_up()
         cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
@@ -133,7 +133,7 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, nothing to do
-        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 4, 'language': 'por'})
@@ -141,7 +141,7 @@ class SubtitleProcessorTest(TestCase):
         self.assertFalse(processor.clean_up.called)
 
         # Attempt ass process, should convert
-        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'por'}}
+        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'subtitle-4.srt', 'index': 0, 'language': 'por'})
