@@ -20,17 +20,20 @@ ROKU = {
     'name': 'Roku',
     'video': {
         'codecs': ['h264'],
+        'container': 'mp4',
         'max_refs': 4,
-        'quality': 20,
+        'quality': 21,
         'preset': 'slow'
     },
     'audio': {
         'codecs': ['mp3', 'aac', 'flac'],
+        'container': 'mp3',
         'channels': 2,
         'quality': 2
     },
     'subtitle': {
         'codecs': ['srt'],
+        'container': 'srt',
         'encodings': ['utf-8', 'iso-8859-1']
     }
 }

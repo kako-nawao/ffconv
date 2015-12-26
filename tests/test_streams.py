@@ -20,7 +20,8 @@ class VideoProcessorTest(TestCase):
         self.assertEqual(processor.codec, 'h264')
         self.assertEqual(processor.language, None)
         self.assertEqual(processor.target_codec, 'h264')
-        self.assertEqual(processor.output, 'video-7.h264')
+        self.assertEqual(processor.target_container, 'mp4')
+        self.assertEqual(processor.output, 'video-7.mp4')
 
     @patch('ffconv.process.execute_cmd')
     def test_convert(self, execute_cmd):
@@ -31,7 +32,7 @@ class VideoProcessorTest(TestCase):
         processor = VideoProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:0', '-c:v', 'h264',
-               '-preset', 'slow', '-crf', '20', 'video-0.h264']
+               '-preset', 'slow', '-crf', '21', 'video-0.mp4']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.VideoProcessor.convert', MagicMock())
@@ -51,7 +52,7 @@ class VideoProcessorTest(TestCase):
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 16}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'video-7.h264', 'index': 0})
+        self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
         self.assertTrue(processor.convert.called)
         self.assertTrue(processor.clean_up.called)
         processor.convert.reset_mock()
@@ -61,7 +62,7 @@ class VideoProcessorTest(TestCase):
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid', 'refs': 5}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'video-7.h264', 'index': 0})
+        self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
         self.assertTrue(processor.convert.called)
         self.assertTrue(processor.clean_up.called)
 

@@ -219,7 +219,8 @@ class StreamProcessor(object):
             self.language = None
         self.allowed_codecs = profile[self.media_type]['codecs']
         self.target_codec = self.allowed_codecs[0]
-        self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_codec)
+        self.target_container = profile[self.media_type]['container']
+        self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_container)
 
     @property
     def must_convert(self):
@@ -275,6 +276,9 @@ class VideoProcessor(StreamProcessor):
     def must_convert(self):
         return any((super(VideoProcessor, self).must_convert,
                     self.refs > self.max_refs))
+
+    def clean_up(self):
+        pass
 
     def convert(self):
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
