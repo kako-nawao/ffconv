@@ -264,6 +264,24 @@ class StreamProcessor(object):
 class VideoProcessor(StreamProcessor):
     media_type = 'video'
 
+    def __init__(self, input, stream, profile):
+        super(VideoProcessor, self).__init__(input, stream, profile)
+        self.refs = int(stream['refs'])
+        self.max_refs = profile[self.media_type]['max_refs']
+        self.target_preset = profile[self.media_type]['preset']
+        self.target_quality = profile[self.media_type]['quality']
+
+    @property
+    def must_convert(self):
+        return any((super(VideoProcessor, self).must_convert,
+                    self.refs > self.max_refs))
+
+    def convert(self):
+        cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
+               '-c:v', self.target_codec, '-preset', str(self.target_preset),
+               '-crf', str(self.target_quality), self.output]
+        execute_cmd(cmd)
+
 
 class AudioProcessor(StreamProcessor):
     media_type = 'audio'

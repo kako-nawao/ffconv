@@ -11,7 +11,7 @@ class VideoProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264'}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4}
 
         # Init, make sure all attrs are set properly
         processor = VideoProcessor(input, stream, profile)
@@ -22,19 +22,48 @@ class VideoProcessorTest(TestCase):
         self.assertEqual(processor.target_codec, 'h264')
         self.assertEqual(processor.output, 'video-7.h264')
 
+    @patch('ffconv.process.execute_cmd')
+    def test_convert(self, execute_cmd):
+        input, profile = 'some-film.mkv', profiles.ROKU
+
+        # Convert h264 with 16 refs
+        stream = {'index': 0, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 16, 'level': 51}
+        processor = VideoProcessor(input, stream, profile)
+        processor.convert()
+        cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:0', '-c:v', 'h264',
+               '-preset', 'slow', '-crf', '20', 'video-0.h264']
+        execute_cmd.assert_called_once_with(cmd)
+
+    @patch('ffconv.process.VideoProcessor.convert', MagicMock())
+    @patch('ffconv.process.VideoProcessor.clean_up', MagicMock())
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, nothing to do
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264'}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 7})
+        self.assertFalse(processor.convert.called)
+        self.assertFalse(processor.clean_up.called)
 
-        # Attempt to process xvid, not implemented error
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid'}
+        # Attempt process with too many refs, should convert
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 16}
         processor = VideoProcessor(input, stream, profile)
-        self.assertRaises(NotImplementedError, processor.process)
+        res = processor.process()
+        self.assertEqual(res, {'input': 'video-7.h264', 'index': 0})
+        self.assertTrue(processor.convert.called)
+        self.assertTrue(processor.clean_up.called)
+        processor.convert.reset_mock()
+        processor.clean_up.reset_mock()
+
+        # Attempt to process xvid, turn to h264
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid', 'refs': 5}
+        processor = VideoProcessor(input, stream, profile)
+        res = processor.process()
+        self.assertEqual(res, {'input': 'video-7.h264', 'index': 0})
+        self.assertTrue(processor.convert.called)
+        self.assertTrue(processor.clean_up.called)
 
 
 class AudioProcessorTest(TestCase):

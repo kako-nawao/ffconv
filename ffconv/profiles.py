@@ -19,7 +19,10 @@ output:
 ROKU = {
     'name': 'Roku',
     'video': {
-        'codecs': ['h264']
+        'codecs': ['h264'],
+        'max_refs': 4,
+        'quality': 20,
+        'preset': 'slow'
     },
     'audio': {
         'codecs': ['mp3', 'aac', 'flac'],
