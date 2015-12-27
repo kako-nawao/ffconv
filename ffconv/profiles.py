@@ -24,7 +24,7 @@ ROKU = {
         'profile': 'high',
         'level': '4.1',
         'max_refs': 4,
-        'quality': 21,
+        'quality': 20,
         'preset': 'slow'
     },
     'audio': {
