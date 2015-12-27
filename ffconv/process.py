@@ -178,9 +178,11 @@ class FileProcessor(object):
                 self.error = e
                 inputs.append(cur_output)
 
-        # Remove input main input from list of inputs, because we either keep it
+        # Remove main input from list of inputs, because we either keep it
         # or we replace it, in which case we'll "mv <tmp> <input>" anyway
-        inputs.remove(self.input)
+        # Note: if we transcode it might not be in inputs list
+        if self.input in inputs:
+            inputs.remove(self.input)
 
         # Finally, return all inputs used in merge (empty if there was no merge)
         return inputs
