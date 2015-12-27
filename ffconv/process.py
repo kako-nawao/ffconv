@@ -269,6 +269,8 @@ class VideoProcessor(StreamProcessor):
         super(VideoProcessor, self).__init__(input, stream, profile)
         self.refs = int(stream['refs'])
         self.max_refs = profile[self.media_type]['max_refs']
+        self.target_profile = profile[self.media_type]['profile']
+        self.target_level = profile[self.media_type]['level']
         self.target_preset = profile[self.media_type]['preset']
         self.target_quality = profile[self.media_type]['quality']
 
@@ -283,7 +285,8 @@ class VideoProcessor(StreamProcessor):
     def convert(self):
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
                '-c:v', self.target_codec, '-preset', str(self.target_preset),
-               '-crf', str(self.target_quality), self.output]
+               '-crf', str(self.target_quality), '-profile:v',
+               self.target_profile, '-level', self.target_level, self.output]
         execute_cmd(cmd)
 
 

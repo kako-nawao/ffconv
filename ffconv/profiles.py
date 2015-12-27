@@ -21,6 +21,8 @@ ROKU = {
     'video': {
         'codecs': ['h264'],
         'container': 'mp4',
+        'profile': 'high',
+        'level': '4.1',
         'max_refs': 4,
         'quality': 21,
         'preset': 'slow'
