@@ -154,8 +154,7 @@ class SubtitleProcessorTest(TestCase):
         stream = {'index': 6, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.clean_up()
-        cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
-               '-e', r"s/<I>/<i>/g", '-e', r"s/<\/I>/<\/i>/g", 'subtitle-6.srt']
+        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig", 'subtitle-6.srt']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.SubtitleProcessor.convert', MagicMock())
@@ -163,16 +162,8 @@ class SubtitleProcessorTest(TestCase):
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 
-        # Attempt simple process, nothing to do
+        # Attempt simple process, still converts
         stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'language': 'por'}}
-        processor = SubtitleProcessor(input, stream, profile)
-        res = processor.process()
-        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 4, 'language': 'por'})
-        self.assertFalse(processor.convert.called)
-        self.assertFalse(processor.clean_up.called)
-
-        # Attempt ass process, should convert
-        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'subtitle-4.srt', 'index': 0, 'language': 'por'})

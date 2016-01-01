@@ -319,13 +319,17 @@ class AudioProcessor(StreamProcessor):
 class SubtitleProcessor(StreamProcessor):
     media_type = 'subtitle'
 
+    @property
+    def must_convert(self):
+        return True
+
     def __init__(self, input, stream, profile):
         super(SubtitleProcessor, self).__init__(input, stream, profile)
         self.target_encodings = profile[self.media_type]['encodings']
 
     def clean_up(self):
-        cmd = ['sed', '-i', '-e', r"s/<font[^>]*>//g", '-e', r"s/<\/font>//g",
-               '-e', r"s/<I>/<i>/g", '-e', r"s/<\/I>/<\/i>/g", self.output]
+        # Remove tags (eg, <i></i>) and comments (eg, {lala})
+        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig", self.output]
         execute_cmd(cmd)
 
     def convert(self):
