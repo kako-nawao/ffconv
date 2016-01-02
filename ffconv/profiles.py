@@ -23,7 +23,7 @@ ROKU = {
         'container': 'mp4',
         'profile': 'high',
         'level': '4.1',
-        'max_refs': 4,
+        'max_refs': 5,
         'quality': 23,
         'preset': 'slow'
     },

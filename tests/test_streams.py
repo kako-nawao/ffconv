@@ -42,7 +42,7 @@ class VideoProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, nothing to do
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 5}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 7})
@@ -60,7 +60,7 @@ class VideoProcessorTest(TestCase):
         processor.clean_up.reset_mock()
 
         # Attempt to process xvid, turn to h264
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid', 'refs': 5}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid', 'refs': 1}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
