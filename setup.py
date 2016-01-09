@@ -21,7 +21,7 @@ setup(
     name='ffconv',
 
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1.dev1',
+    version='0.0.2',
 
     description='Process media files with ffmpeg',
     long_description=long_description,

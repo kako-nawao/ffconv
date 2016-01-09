@@ -11,7 +11,8 @@ class VideoProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
+                  'refs': 4, 'height': 720}
 
         # Init, make sure all attrs are set properly
         processor = VideoProcessor(input, stream, profile)
@@ -28,12 +29,13 @@ class VideoProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert h264 with 16 refs
-        stream = {'index': 0, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 16, 'level': 51}
+        stream = {'index': 0, 'codec_type': 'video',
+                  'codec_name': 'h264', 'refs': 16, 'level': 51, 'height': 720}
         processor = VideoProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:0', '-c:v', 'h264',
-               '-preset', 'slow', '-crf', '23', '-profile:v', 'high', '-level',
-               '4.1', 'video-0.mp4']
+               '-preset', 'slower', '-crf', '22', '-profile:v', 'high',
+               '-level', '4.1', 'video-0.mp4']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.VideoProcessor.convert', MagicMock())
@@ -41,16 +43,18 @@ class VideoProcessorTest(TestCase):
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 
-        # Attempt simple process, nothing to do
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 5}
+        # Attempt process for 720:8 refs, nothing to do
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
+                  'refs': 8, 'height': 720}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 7})
         self.assertFalse(processor.convert.called)
         self.assertFalse(processor.clean_up.called)
 
-        # Attempt process with too many refs, should convert
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 16}
+        # Attempt process for 1080:8 refs, needs to convert
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
+                  'refs': 8, 'height': 1080}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
@@ -60,7 +64,8 @@ class VideoProcessorTest(TestCase):
         processor.clean_up.reset_mock()
 
         # Attempt to process xvid, turn to h264
-        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid', 'refs': 1}
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid',
+                  'refs': 1, 'height': 720}
         processor = VideoProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
@@ -72,7 +77,8 @@ class AudioProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'language': 'por'}}
+        stream = {'index': 3, 'codec_type': 'audio', 'codec_name': 'ac3',
+                  'channels': 2, 'tags': {'language': 'por'}}
 
         # Init, make sure all attrs are set properly
         processor = AudioProcessor(input, stream, profile)
@@ -90,7 +96,8 @@ class AudioProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac', 'channels': 6, 'tags': {'language': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'flac',
+                  'channels': 6, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-c:a', 'mp3',
@@ -103,18 +110,22 @@ class AudioProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, nothing to do
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac', 'channels': 2, 'tags': {'language': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac',
+                  'channels': 2, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 1, 'language': 'por'})
+        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 1,
+                               'language': 'por'})
         self.assertFalse(processor.convert.called)
         self.assertFalse(processor.clean_up.called)
 
         # Attempt mp3 process, should convert
-        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'ac3', 'channels': 2, 'tags': {'language': 'por'}}
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'ac3',
+                  'channels': 2, 'tags': {'language': 'por'}}
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'audio-1.mp3', 'index': 0, 'language': 'por'})
+        self.assertEqual(res, {'input': 'audio-1.mp3', 'index': 0,
+                               'language': 'por'})
         self.assertTrue(processor.convert.called)
         self.assertTrue(processor.clean_up.called)
 
@@ -123,7 +134,8 @@ class SubtitleProcessorTest(TestCase):
 
     def test_init(self):
         input, profile = 'some-film.mkv', profiles.ROKU
-        stream = {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
+        stream = {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass',
+                  'tags': {'language': 'por'}}
 
         # Init, make sure all attrs are set properly
         processor = SubtitleProcessor(input, stream, profile)
@@ -139,7 +151,8 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 5, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
+        stream = {'index': 5, 'codec_type': 'subtitle', 'codec_name': 'ass',
+                  'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-sub_charenc', 'utf-8', '-i', 'some-film.mkv',
@@ -151,10 +164,12 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
-        stream = {'index': 6, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'language': 'por'}}
+        stream = {'index': 6, 'codec_type': 'subtitle', 'codec_name': 'ass',
+                  'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         processor.clean_up()
-        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig", 'subtitle-6.srt']
+        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig",
+               'subtitle-6.srt']
         execute_cmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.SubtitleProcessor.convert', MagicMock())
@@ -163,9 +178,11 @@ class SubtitleProcessorTest(TestCase):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Attempt simple process, still converts
-        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'language': 'por'}}
+        stream = {'index': 4, 'codec_type': 'subtitle', 'codec_name': 'srt',
+                  'tags': {'language': 'por'}}
         processor = SubtitleProcessor(input, stream, profile)
         res = processor.process()
-        self.assertEqual(res, {'input': 'subtitle-4.srt', 'index': 0, 'language': 'por'})
+        self.assertEqual(res, {'input': 'subtitle-4.srt', 'index': 0,
+                               'language': 'por'})
         self.assertTrue(processor.convert.called)
         self.assertTrue(processor.clean_up.called)

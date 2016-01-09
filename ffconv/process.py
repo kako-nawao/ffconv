@@ -270,7 +270,8 @@ class VideoProcessor(StreamProcessor):
     def __init__(self, input, stream, profile):
         super(VideoProcessor, self).__init__(input, stream, profile)
         self.refs = int(stream['refs'])
-        self.max_refs = profile[self.media_type]['max_refs']
+        height = int(stream.get('height', 720))
+        self.max_refs = profile[self.media_type]['max_refs'].get(height, 5)
         self.target_profile = profile[self.media_type]['profile']
         self.target_level = profile[self.media_type]['level']
         self.target_preset = profile[self.media_type]['preset']
