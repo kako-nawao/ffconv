@@ -1,3 +1,9 @@
 .idea
+.coverage
+.sonar
 __pycache__
+coverage.xml
 ffconv.egg-info
+sonar-project.properties
+test-reports
+
