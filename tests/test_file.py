@@ -56,6 +56,8 @@ class FileProcessorTest(TestCase):
         processor = FileProcessor('lalala.csv', None, 'RoKu')
         self.assertEqual(processor.profile, profiles.ROKU)
 
+    @patch('subprocess.Popen._execute_child', MagicMock())
+    @patch('subprocess.Popen.wait', MagicMock())
     def test_probe(self):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
