@@ -159,6 +159,7 @@ class SubtitleProcessorTest(TestCase):
         processor.convert()
         cmd = ['ffmpeg', '-sub_charenc', 'utf-8', '-i', 'some-film.mkv',
                '-map', '0:5', 'subtitle-5.srt']
+        self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
