@@ -62,13 +62,13 @@ class FileProcessorTest(TestCase):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
         # Check correct command construction
-        with patch('ffconv.process.execute_cmd') as execute_cmd:
-            execute_cmd.return_value = '{"streams": []}'
+        with patch('ffconv.process.execute_cmd') as ecmd:
+            ecmd.return_value = '{"streams": []}'
 
-            self.assertFalse(execute_cmd.called)
+            self.assertFalse(ecmd.called)
             processor.probe()
             cmd = ['ffprobe', '-v', 'quiet', '-show_streams', '-of', 'json', 'input.mkv']
-            execute_cmd.assert_called_once_with(cmd)
+            ecmd.assert_called_once_with(cmd)
 
         # Check correct result parsing
         with patch('subprocess.Popen.__enter__') as ctx_mgr:
@@ -151,7 +151,7 @@ class FileProcessorTest(TestCase):
         self.assertEqual(type(processor.error), ValueError)
 
     @patch('ffconv.process.execute_cmd')
-    def test_merge(self, execute_cmd):
+    def test_merge(self, ecmd):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
         # Merge streams without conversion, should return empty list
@@ -162,7 +162,7 @@ class FileProcessorTest(TestCase):
                    {'input': 'input.mkv', 'index': 4}]
         inputs = processor.merge(streams)
         self.assertEqual(inputs, [])
-        self.assertFalse(execute_cmd.called)
+        self.assertFalse(ecmd.called)
 
         # Merge streams with 3 conversions, should return those three
         streams = [{'input': 'input.mkv', 'index': 0},
@@ -177,8 +177,8 @@ class FileProcessorTest(TestCase):
                '-map', '2:0', '-map', '3:0', '-metadata:s:1', 'language=jap',
                '-metadata:s:2', 'language=eng', '-metadata:s:3', 'language=eng',
                '-metadata:s:4', 'language=spa', '-c', 'copy', 'output.mkv']
-        execute_cmd.assert_called_once_with(cmd)
-        execute_cmd.reset_mock()
+        ecmd.assert_called_once_with(cmd)
+        ecmd.reset_mock()
 
         # Do the same without output, should do the same but use tmp.mkv as output
         processor.output = None
@@ -186,34 +186,35 @@ class FileProcessorTest(TestCase):
         res = processor.merge(streams)
         self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt'])
         self.assertEqual(processor.error, None)
-        execute_cmd.assert_called_once_with(cmd)
-        execute_cmd.reset_mock()
+        ecmd.assert_called_once_with(cmd)
+        ecmd.reset_mock()
 
         # Simulate failure, should add output to cleanup and update error
-        execute_cmd.side_effect = ValueError('Something failed')
+        ecmd.side_effect = ValueError('Something failed')
         res = processor.merge(streams)
         self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt', 'tmp.mkv'])
         self.assertEqual(type(processor.error), ValueError)
 
     @patch('ffconv.process.execute_cmd')
-    def test_replace_original(self, execute_cmd):
+    def test_replace_original(self, ecmd):
         processor = FileProcessor('another-input.mkv', None, 'roku')
 
         # Replace original, make sure output is updated
         processor.replace_original()
         cmd = ['mv', 'tmp.mkv', 'another-input.mkv']
-        execute_cmd.assert_called_once_with(cmd)
+        ecmd.assert_called_once_with(cmd)
         self.assertEqual(processor.output, 'another-input.mkv')
 
     @patch('ffconv.process.execute_cmd')
-    def test_clean_up(self, execute_cmd):
+    def test_clean_up(self, ecmd):
         processor = FileProcessor('another-input.mkv', 'output.mkv', 'roku')
 
         # Clean up, make sure all files are removed
         inputs = ['audio-2.mp3', 'audio-4.mp3', 'subtitle-5.srt']
         processor.clean_up(inputs)
         cmd = ['rm', 'audio-2.mp3', 'audio-4.mp3', 'subtitle-5.srt']
-        execute_cmd.assert_called_once_with(cmd)
+        self.assertTrue(ecmd.called)
+        ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
     @patch('ffconv.process.FileProcessor.probe', MagicMock(return_value=[
@@ -222,7 +223,7 @@ class FileProcessorTest(TestCase):
         {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'spa'}},
         {'index': 3, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'LANGUAGE': 'por'}},
     ]))
-    def test_process(self, execute_cmd):
+    def test_process(self, ecmd):
         # Run example process with output
         processor = FileProcessor('Se7en.mkv', 'seven.mkv', 'roku')
         res = processor.process()
