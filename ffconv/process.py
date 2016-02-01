@@ -79,6 +79,18 @@ class FileProcessor(object):
             cmd.append(output)
         return cmd
 
+    @staticmethod
+    def clean_up(files):
+        """
+        Remove the given files.
+
+        :param files: files used as input in the final merge
+        :return:
+        """
+        cmd = ['rm']
+        cmd.extend(files)
+        execute_cmd(cmd)
+
     def __init__(self, input, output, profile):
         self.input = input
         self.output = output
@@ -213,17 +225,6 @@ class FileProcessor(object):
         execute_cmd(cmd)
         self.output = self.input
 
-    def clean_up(self, files):
-        """
-        Remove the given files.
-
-        :param files: files used as input in the final merge
-        :return:
-        """
-        cmd = ['rm']
-        cmd.extend(files)
-        execute_cmd(cmd)
-
 
 class StreamProcessor(object):
     media_type = None
@@ -335,10 +336,7 @@ class AudioProcessor(StreamProcessor):
 
 class SubtitleProcessor(StreamProcessor):
     media_type = 'subtitle'
-
-    @property
-    def must_convert(self):
-        return True
+    must_convert = True
 
     def __init__(self, input, stream, profile):
         super(SubtitleProcessor, self).__init__(input, stream, profile)
