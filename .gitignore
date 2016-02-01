@@ -5,4 +5,5 @@ __pycache__
 coverage.xml
 ffconv.egg-info
 test-reports
+nose2-junit.xml
 
