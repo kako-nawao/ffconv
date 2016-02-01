@@ -25,7 +25,7 @@ class VideoProcessorTest(TestCase):
         self.assertEqual(processor.output, 'video-7.mp4')
 
     @patch('ffconv.process.execute_cmd')
-    def test_convert(self, execute_cmd):
+    def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert h264 with 16 refs
@@ -36,7 +36,8 @@ class VideoProcessorTest(TestCase):
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:0', '-c:v', 'h264',
                '-preset', 'slower', '-crf', '22', '-profile:v', 'high',
                '-level', '4.1', 'video-0.mp4']
-        execute_cmd.assert_called_once_with(cmd)
+        self.assertTrue(ecmd.called)
+        ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.VideoProcessor.convert', MagicMock())
     @patch('ffconv.process.VideoProcessor.clean_up', MagicMock())
@@ -92,7 +93,7 @@ class AudioProcessorTest(TestCase):
         self.assertEqual(processor.target_channels, 2)
 
     @patch('ffconv.process.execute_cmd')
-    def test_convert(self, execute_cmd):
+    def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
@@ -102,7 +103,8 @@ class AudioProcessorTest(TestCase):
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:1', '-c:a', 'mp3',
                '-q:a', '2', '-ac:0', '2', 'audio-1.mp3']
-        execute_cmd.assert_called_once_with(cmd)
+        self.assertTrue(ecmd.called)
+        ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.AudioProcessor.convert', MagicMock())
     @patch('ffconv.process.AudioProcessor.clean_up', MagicMock())
@@ -147,7 +149,7 @@ class SubtitleProcessorTest(TestCase):
         self.assertEqual(processor.output, 'subtitle-2.srt')
 
     @patch('ffconv.process.execute_cmd')
-    def test_convert(self, execute_cmd):
+    def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
@@ -157,10 +159,10 @@ class SubtitleProcessorTest(TestCase):
         processor.convert()
         cmd = ['ffmpeg', '-sub_charenc', 'utf-8', '-i', 'some-film.mkv',
                '-map', '0:5', 'subtitle-5.srt']
-        execute_cmd.assert_called_once_with(cmd)
+        ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.execute_cmd')
-    def test_clean_up(self, execute_cmd):
+    def test_clean_up(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
         # Convert flac with 6 channels
@@ -170,7 +172,8 @@ class SubtitleProcessorTest(TestCase):
         processor.clean_up()
         cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig",
                'subtitle-6.srt']
-        execute_cmd.assert_called_once_with(cmd)
+        self.assertTrue(ecmd.called)
+        ecmd.assert_called_once_with(cmd)
 
     @patch('ffconv.process.SubtitleProcessor.convert', MagicMock())
     @patch('ffconv.process.SubtitleProcessor.clean_up', MagicMock())
