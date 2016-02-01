@@ -13,23 +13,16 @@ def execute_cmd(cmd):
     :return: output of command
     """
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
-        try:
-            output = b''
-            for line in iter(process.stdout.readline, b''):
-                if b'Error' in line:
-                    raise ValueError(line.decode('utf-8'))
-                else:
-                    output += line
+        output = b''
+        for line in iter(process.stdout.readline, b''):
+            if b'Error' in line:
+                raise ValueError(line.decode('utf-8'))
+            else:
+                output += line
 
-        except:
-            process.kill()
-            process.wait()
-            raise
-
-        else:
-            retcode = process.poll()
-            if retcode:
-                raise subprocess.CalledProcessError(retcode, process.args, output=output)
+        retcode = process.poll()
+        if retcode:
+            raise subprocess.CalledProcessError(retcode, process.args, output=output)
 
     # All good, decode output and return it
     return output.decode('utf-8').lower()
