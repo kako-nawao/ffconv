@@ -43,6 +43,42 @@ def log(msg, level=0):
 class FileProcessor(object):
     tmp_file = 'tmp.mkv'
 
+    @staticmethod
+    def _build_merge_params(streams, inputs, maps, meta):
+        """
+        Build lists of inputs, maps and meta from processed streams.
+        """
+        for stream in streams:
+            # First, add stream filename to inputs if not there yet
+            if not stream['input'] in inputs:
+                inputs.append(stream['input'])
+
+            # Then add mapping (input index must come from filename)
+            maps.append('{}:{}'.format(inputs.index(stream['input']), stream['index']))
+
+            # Finally, add language if available (map index is always last one)
+            if stream.get('language'):
+                meta.extend(['-metadata:s:{}'.format(len(maps) - 1),
+                             'language={}'.format(stream['language'])])
+
+    @staticmethod
+    def _build_merge_command(inputs, maps, meta, output):
+        """
+        Build merge command (if we need to make a conversion) as a list of strings.
+        """
+        cmd = []
+        if len(inputs) > 1:
+            # Build merge command and execute it
+            cmd.append('ffmpeg')
+            for input in inputs:
+                cmd.extend(['-i', input])
+            for map in maps:
+                cmd.extend(['-map', map])
+            cmd.extend(meta)
+            cmd.extend(['-c', 'copy'])
+            cmd.append(output)
+        return cmd
+
     def __init__(self, input, output, profile):
         self.input = input
         self.output = output
@@ -145,38 +181,18 @@ class FileProcessor(object):
         meta = []
 
         # Construct lists with parameters
-        for stream in streams:
-            # First, add stream filename to inputs if not there yet
-            if not stream['input'] in inputs:
-                inputs.append(stream['input'])
-
-            # Then add mapping (input index must come from filename)
-            maps.append('{}:{}'.format(inputs.index(stream['input']), stream['index']))
-
-            # Finally, add language if available (map index is always last one)
-            if stream.get('language'):
-                meta.extend(['-metadata:s:{}'.format(len(maps) - 1),
-                             'language={}'.format(stream['language'])])
+        self._build_merge_params(streams, inputs, maps, meta)
 
         # Merge inputs if we have more than one (1 means no streams were converted, nothing to do)
-        if len(inputs) > 1:
-            # Build merge command and execute it
-            cmd = ['ffmpeg']
-            for input in inputs:
-                cmd.extend(['-i', input])
-            for map in maps:
-                cmd.extend(['-map', map])
-            cmd.extend(meta)
-            cmd.extend(['-c', 'copy'])
-            cur_output = self.output or self.tmp_file
-            cmd.append(cur_output)
-
+        cmd = self._build_merge_command(inputs, maps, meta, self.output or self.tmp_file)
+        if cmd:
             try:
                 execute_cmd(cmd)
+
             except Exception as e:
                 log('Error: {}'.format(e), 2)
                 self.error = e
-                inputs.append(cur_output)
+                inputs.append(cmd[-1])
 
         # Remove main input from list of inputs, because we either keep it
         # or we replace it, in which case we'll "mv <tmp> <input>" anyway
