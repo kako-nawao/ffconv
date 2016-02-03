@@ -6,7 +6,7 @@ import json
 
 from . import profiles
 from .utils import execute_cmd, log
-from .stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor
+from .stream_processors import StreamProcessor
 
 
 class FileProcessor(object):
@@ -23,7 +23,8 @@ class FileProcessor(object):
                 inputs.append(stream['input'])
 
             # Then add mapping (input index must come from filename)
-            maps.append('{}:{}'.format(inputs.index(stream['input']), stream['index']))
+            maps.append('{}:{}'.format(inputs.index(stream['input']),
+                                       stream['index']))
 
             # Finally, add language if available (map index is always last one)
             if stream.get('language'):
@@ -81,7 +82,8 @@ class FileProcessor(object):
         """
         Main process method
         """
-        log('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
+        log('Processing file <input:{} profile:{} output:{}>'\
+            .format(self.input, self.profile['name'], self.output))
 
         # First step, probe for file streams
         log('Probing...', 1)
@@ -93,7 +95,8 @@ class FileProcessor(object):
 
         if self.error:
             # Get inputs to remove and reset output
-            inputs = {s['input'] for s in processed_streams}.difference([self.input])
+            inputs = {s['input'] for s in processed_streams}\
+                .difference([self.input])
         else:
             # If we have no errors, merge them
             log('Merging streams into output...', 1)
@@ -109,7 +112,7 @@ class FileProcessor(object):
             self.clean_up(inputs)
 
         # If we had an error, raise it again
-        if self.error:
+        if isinstance(self.error, Exception):
             raise self.error
 
         log('Done')
@@ -121,7 +124,8 @@ class FileProcessor(object):
 
         :return: list of streams data (dicts)
         """
-        cmd = ['ffprobe', '-v', 'quiet', '-show_streams', '-of', 'json', self.input]
+        cmd = ['ffprobe', '-v', 'quiet', '-show_streams',
+               '-of', 'json', self.input]
         output = execute_cmd(cmd)
         return json.loads(output)['streams']
 
@@ -137,17 +141,18 @@ class FileProcessor(object):
         try:
             for stream in original_streams:
                 # Find all processors that match media type
-                processor_types = list(filter(lambda x: x.media_type == stream['codec_type'],
-                                              [VideoProcessor, AudioProcessor, SubtitleProcessor]))
+                proc_types = [pt for pt in StreamProcessor.__subclasses__()
+                                   if pt.media_type == stream['codec_type']]
 
-                if processor_types:
+                if proc_types:
                     # For now just select the first one that matched media type
-                    processor_cls = processor_types[0]
+                    processor_cls = proc_types[0]
                     processor = processor_cls(self.input, stream, self.profile)
                     result = processor.process()
                     processed_streams.append(result)
                 else:
-                    log('Skipping stream {}, media type {} not recognized'.format(stream['index'], stream['codec_type']), 2)
+                    log('Skipping stream {}, media type {} not recognized'\
+                        .format(stream['index'], stream['codec_type']), 2)
 
         except Exception as e:
             # This means some stream could not be processed, clean up and stop
@@ -170,8 +175,10 @@ class FileProcessor(object):
         # Construct lists with parameters
         self._build_merge_params(streams, inputs, maps, meta)
 
-        # Merge inputs if we have more than one (1 means no streams were converted, nothing to do)
-        cmd = self._build_merge_command(inputs, maps, meta, self.output or self.tmp_file)
+        # Merge inputs if we have more than one (1 means no streams were
+        # converted, nothing to do)
+        cmd = self._build_merge_command(inputs, maps, meta,
+                                        self.output or self.tmp_file)
         if cmd:
             try:
                 execute_cmd(cmd)
@@ -187,7 +194,8 @@ class FileProcessor(object):
         if self.input in inputs:
             inputs.remove(self.input)
 
-        # Finally, return all inputs used in merge (empty if there was no merge)
+        # Finally, return all inputs used in merge
+        # (empty if there was no merge)
         return inputs
 
     def replace_original(self):
