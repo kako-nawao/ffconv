@@ -142,7 +142,7 @@ class FileProcessor(object):
             for stream in original_streams:
                 # Find all processors that match media type
                 proc_types = [pt for pt in StreamProcessor.__subclasses__()
-                                   if pt.media_type == stream['codec_type']]
+                              if pt.media_type == stream['codec_type']]
 
                 if proc_types:
                     # For now just select the first one that matched media type
