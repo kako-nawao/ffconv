@@ -10,6 +10,10 @@ from .stream_processors import StreamProcessor
 
 
 class FileProcessor(object):
+    """
+    Process for multimedia file, which delegates processing of streams to
+    StreamProcessor subclasses.
+    """
     tmp_file = 'tmp.mkv'
 
     @staticmethod
@@ -70,17 +74,26 @@ class FileProcessor(object):
         execute_cmd(cmd)
 
     def __init__(self, in_file, output, profile):
+        """
+        Set input, output, profile and error placeholder.
+        """
+        # Set files and error placeholder
         self.input = in_file
         self.output = output
+        self.error = None
+
+        # Set profile if found (or raise an error)
         try:
             self.profile = getattr(profiles, profile.upper())
         except AttributeError:
             raise ValueError('Profile {} could not be found'.format(profile))
-        self.error = None
 
     def process(self):
         """
-        Main process method
+        Main process method, which probes the input file to get the input
+        streams information, then delegates the stream processing to stream
+        processor objects and then merges all resulting stream files into
+        a single output file.
         """
         log('Processing file <input:{} profile:{} output:{}>'\
             .format(self.input, self.profile['name'], self.output))
@@ -93,12 +106,13 @@ class FileProcessor(object):
         log('Processing streams...', 1)
         processed_streams = self.process_streams(original_streams)
 
+        # By now we could have an error
         if self.error:
-            # Get inputs to remove and reset output
+            # We've an error, clean up all files
             inputs = {s['input'] for s in processed_streams}\
                 .difference([self.input])
         else:
-            # If we have no errors, merge them
+            # No errors, merge the files
             log('Merging streams into output...', 1)
             inputs = self.merge(processed_streams)
 
@@ -111,10 +125,11 @@ class FileProcessor(object):
                 self.replace_original()
             self.clean_up(inputs)
 
-        # If we had an error, raise it again
+        # If we had an error, raise it
         if isinstance(self.error, Exception):
             raise self.error
 
+        # No errors, log that we're done and return result
         log('Done')
         return {'streams': len(processed_streams), 'output': self.output}
 
