@@ -13,12 +13,12 @@ class StreamProcessor(object):
     """
     media_type = None
 
-    def __init__(self, input, stream, profile):
+    def __init__(self, in_file, stream, profile):
         """
         Set generic input and target specs from input file, stream and profile.
         """
         # Set direct values from input and stream
-        self.input = input
+        self.input = in_file
         self.index = stream['index']
         self.codec = stream['codec_name']
         self.language = stream.get('tags', {}).get('language')
@@ -32,9 +32,9 @@ class StreamProcessor(object):
         self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_container)
 
         # Set stream-specific data
-        self._init_stream(input, stream, profile)
+        self._init_stream(stream, profile)
 
-    def _init_stream(self, input, stream, profile):
+    def _init_stream(self, stream, profile):
         """
         Set stream-specific input and target specs from input file, stream
         and profile.
@@ -99,7 +99,7 @@ class VideoProcessor(StreamProcessor):
     """
     media_type = 'video'
 
-    def _init_stream(self, input, stream, profile):
+    def _init_stream(self, stream, profile):
         """
         Set video-specific input and target specs,
         """
@@ -147,7 +147,7 @@ class AudioProcessor(StreamProcessor):
     """
     media_type = 'audio'
 
-    def _init_stream(self, input, stream, profile):
+    def _init_stream(self, stream, profile):
         """
         Set audio-specific input and target specs,
         """
@@ -194,7 +194,7 @@ class SubtitleProcessor(StreamProcessor):
     # Override super property to always convert (we always want to clean-up)
     must_convert = True
 
-    def _init_stream(self, input, stream, profile):
+    def _init_stream(self, stream, profile):
         """
         Set audio-specific input and target specs,
         """

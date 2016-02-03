@@ -43,8 +43,8 @@ class FileProcessor(object):
             cmd.append('ffmpeg')
 
             # Add each of the resulting inputs
-            for input in inputs:
-                cmd.extend(['-i', input])
+            for in_file in inputs:
+                cmd.extend(['-i', in_file])
 
             # Add each of the maps
             for map in maps:
@@ -69,8 +69,8 @@ class FileProcessor(object):
         cmd.extend(files)
         execute_cmd(cmd)
 
-    def __init__(self, input, output, profile):
-        self.input = input
+    def __init__(self, in_file, output, profile):
+        self.input = in_file
         self.output = output
         try:
             self.profile = getattr(profiles, profile.upper())
