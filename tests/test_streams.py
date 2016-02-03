@@ -4,7 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from ffconv import profiles
-from ffconv.process import VideoProcessor, AudioProcessor, SubtitleProcessor
+from ffconv.stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor
 
 
 class VideoProcessorTest(TestCase):
@@ -24,7 +24,7 @@ class VideoProcessorTest(TestCase):
         self.assertEqual(processor.target_container, 'mp4')
         self.assertEqual(processor.output, 'video-7.mp4')
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.stream_processors.execute_cmd')
     def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -39,8 +39,8 @@ class VideoProcessorTest(TestCase):
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
-    @patch('ffconv.process.VideoProcessor.convert', MagicMock())
-    @patch('ffconv.process.VideoProcessor.clean_up', MagicMock())
+    @patch('ffconv.stream_processors.VideoProcessor.convert', MagicMock())
+    @patch('ffconv.stream_processors.VideoProcessor.clean_up', MagicMock())
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -92,7 +92,7 @@ class AudioProcessorTest(TestCase):
         self.assertEqual(processor.channels, 2)
         self.assertEqual(processor.target_channels, 2)
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.stream_processors.execute_cmd')
     def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -106,8 +106,8 @@ class AudioProcessorTest(TestCase):
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
-    @patch('ffconv.process.AudioProcessor.convert', MagicMock())
-    @patch('ffconv.process.AudioProcessor.clean_up', MagicMock())
+    @patch('ffconv.stream_processors.AudioProcessor.convert', MagicMock())
+    @patch('ffconv.stream_processors.AudioProcessor.clean_up', MagicMock())
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -148,7 +148,7 @@ class SubtitleProcessorTest(TestCase):
         self.assertEqual(processor.target_codec, 'srt')
         self.assertEqual(processor.output, 'subtitle-2.srt')
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.stream_processors.execute_cmd')
     def test_convert(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -162,7 +162,7 @@ class SubtitleProcessorTest(TestCase):
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.stream_processors.execute_cmd')
     def test_clean_up(self, ecmd):
         input, profile = 'some-film.mkv', profiles.ROKU
 
@@ -176,8 +176,8 @@ class SubtitleProcessorTest(TestCase):
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
-    @patch('ffconv.process.SubtitleProcessor.convert', MagicMock())
-    @patch('ffconv.process.SubtitleProcessor.clean_up', MagicMock())
+    @patch('ffconv.stream_processors.SubtitleProcessor.convert', MagicMock())
+    @patch('ffconv.stream_processors.SubtitleProcessor.clean_up', MagicMock())
     def test_process(self):
         input, profile = 'some-film.mkv', profiles.ROKU
 

@@ -6,7 +6,8 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from ffconv import profiles
-from ffconv.process import FileProcessor, VideoProcessor, AudioProcessor, SubtitleProcessor, execute_cmd
+from ffconv.file_processor import FileProcessor
+from ffconv.stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor, execute_cmd
 
 
 class ExecuteCommandTest(TestCase):
@@ -62,7 +63,7 @@ class FileProcessorTest(TestCase):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
         # Check correct command construction
-        with patch('ffconv.process.execute_cmd') as ecmd:
+        with patch('ffconv.file_processor.execute_cmd') as ecmd:
             ecmd.return_value = '{"streams": []}'
 
             self.assertFalse(ecmd.called)
@@ -86,12 +87,12 @@ class FileProcessorTest(TestCase):
             self.assertEqual(res, [{"codec_type": "video", "codec_name": "h264", "index": 0},
                                    {"codec_type": "audio", "codec_name": "mp3", "index": 1, "tags": {"language": "por"}}])
 
-    @patch('ffconv.process.VideoProcessor.process',
+    @patch('ffconv.stream_processors.VideoProcessor.process',
            MagicMock(return_value={'input': 'input.mkv', 'index': 0}))
-    @patch('ffconv.process.AudioProcessor.process',
+    @patch('ffconv.stream_processors.AudioProcessor.process',
            MagicMock(side_effect=[{'input': 'input.mkv', 'index': 1, 'language': 'jap'},
                                   {'input': 'input.mkv', 'index': 2, 'language': 'eng'}]))
-    @patch('ffconv.process.SubtitleProcessor.process',
+    @patch('ffconv.stream_processors.SubtitleProcessor.process',
            MagicMock(side_effect=[{'input': 'input.mkv', 'index': 3, 'language': 'spa'},
                                   {'input': 'input.mkv', 'index': 4, 'language': 'por'}]))
     def test_process_streams_success(self):
@@ -127,12 +128,12 @@ class FileProcessorTest(TestCase):
         self.assertEqual(AudioProcessor.process.call_count, 2)
         self.assertEqual(SubtitleProcessor.process.call_count, 2)
 
-    @patch('ffconv.process.VideoProcessor.process',
+    @patch('ffconv.stream_processors.VideoProcessor.process',
            MagicMock(return_value={'input': 'input.mkv', 'index': 0}))
-    @patch('ffconv.process.AudioProcessor.process',
+    @patch('ffconv.stream_processors.AudioProcessor.process',
            MagicMock(side_effect=[{'input': 'input.mkv', 'index': 1, 'language': 'jap'},
                                   {'input': 'input.mkv', 'index': 2, 'language': 'eng'}]))
-    @patch('ffconv.process.SubtitleProcessor.process',
+    @patch('ffconv.stream_processors.SubtitleProcessor.process',
            MagicMock(side_effect=ValueError('Could not convert ass!')))
     def test_process_streams_error(self):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
@@ -150,7 +151,7 @@ class FileProcessorTest(TestCase):
         res = processor.process_streams(streams)
         self.assertEqual(type(processor.error), ValueError)
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.file_processor.execute_cmd')
     def test_merge(self, ecmd):
         processor = FileProcessor('input.mkv', 'output.mkv', 'roku')
 
@@ -195,7 +196,7 @@ class FileProcessorTest(TestCase):
         self.assertEqual(res, ['audio-1.mp3', 'subtitle-3.srt', 'subtitle-4.srt', 'tmp.mkv'])
         self.assertEqual(type(processor.error), ValueError)
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.file_processor.execute_cmd')
     def test_replace_original(self, ecmd):
         processor = FileProcessor('another-input.mkv', None, 'roku')
 
@@ -205,7 +206,7 @@ class FileProcessorTest(TestCase):
         ecmd.assert_called_once_with(cmd)
         self.assertEqual(processor.output, 'another-input.mkv')
 
-    @patch('ffconv.process.execute_cmd')
+    @patch('ffconv.file_processor.execute_cmd')
     def test_clean_up(self, ecmd):
         processor = FileProcessor('another-input.mkv', 'output.mkv', 'roku')
 
@@ -216,14 +217,15 @@ class FileProcessorTest(TestCase):
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)
 
-    @patch('ffconv.process.execute_cmd')
-    @patch('ffconv.process.FileProcessor.probe', MagicMock(return_value=[
+    @patch('ffconv.stream_processors.execute_cmd', MagicMock())
+    @patch('ffconv.file_processor.execute_cmd', MagicMock())
+    @patch('ffconv.file_processor.FileProcessor.probe', MagicMock(return_value=[
         {'index': 0, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4},
         {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac', 'channels': 6, 'tags': {'LANGUAGE': 'eng'}},
         {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'spa'}},
         {'index': 3, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'LANGUAGE': 'por'}},
     ]))
-    def test_process(self, ecmd):
+    def test_process(self):
         # Run example process with output
         processor = FileProcessor('Se7en.mkv', 'seven.mkv', 'roku')
         res = processor.process()
