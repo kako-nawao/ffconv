@@ -1,9 +1,6 @@
 """
 Utility functions used by processors.
 """
-
-__author__ = 'kako'
-
 import subprocess
 from subprocess import CalledProcessError
 

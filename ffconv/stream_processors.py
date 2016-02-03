@@ -35,7 +35,7 @@ class StreamProcessor(object):
         # Set stream-specific data
         self._init_stream(stream, profile)
 
-    def _init_stream(self, stream, profile):
+    def _init_stream(self, *args):
         """
         Set stream-specific input and target specs from input file, stream
         and profile.
@@ -241,4 +241,3 @@ class SubtitleProcessor(StreamProcessor):
 
         # If none worked, we raise an exception
         raise ValueError('Could not extract stream {}'.format(index))
-
