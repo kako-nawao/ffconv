@@ -172,18 +172,17 @@ class FileProcessor(object):
         maps = []
         meta = []
 
-        # Construct lists with parameters
+        # Construct lists with parameters and build command
         self._build_merge_params(streams, inputs, maps, meta)
-
-        # Merge inputs if we have more than one (1 means no streams were
-        # converted, nothing to do)
         cmd = self._build_merge_command(inputs, maps, meta,
                                         self.output or self.tmp_file)
         if cmd:
+            # We have a command -> we have something to merge
             try:
                 execute_cmd(cmd)
 
             except Exception as e:
+                # Oops, merge failed, log an set error
                 log('Error: {}'.format(e), 2)
                 self.error = e
                 inputs.append(cmd[-1])

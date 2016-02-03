@@ -29,7 +29,8 @@ class StreamProcessor(object):
         # Select target values from profile
         self.target_codec = self.allowed_codecs[0]
         self.target_container = profile[self.media_type]['container']
-        self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_container)
+        self.output = '{}-{}.{}'.format(self.media_type, self.index,
+                                        self.target_container)
 
         # Set stream-specific data
         self._init_stream(stream, profile)
@@ -86,7 +87,8 @@ class StreamProcessor(object):
             # Nothing to do
             log('Skipping, no conversion required', 3)
 
-        # Build and return data: input file, index and language (used by merger)
+        # Build and return data: input file, index and language
+        # (used by merger)
         res = {'input': self.input, 'index': self.index}
         if self.language:
             res['language'] = self.language
@@ -206,7 +208,8 @@ class SubtitleProcessor(StreamProcessor):
         Cleanup for subtitles consists of removing "weird tags", such as fonts
         and comments (eg, <i></i>, {lala}).
         """
-        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig", self.output]
+        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig",
+               self.output]
         execute_cmd(cmd)
 
     def convert(self):
@@ -223,7 +226,8 @@ class SubtitleProcessor(StreamProcessor):
         for encoding in self.target_encodings:
             try:
                 # Try to extract with current encoding
-                cmd = ['ffmpeg', '-sub_charenc', encoding, '-i', self.input, '-map', index, self.output]
+                cmd = ['ffmpeg', '-sub_charenc', encoding, '-i', self.input,
+                       '-map', index, self.output]
                 execute_cmd(cmd)
 
             except CalledProcessError:
