@@ -1,36 +1,12 @@
+"""
+This module contains the actual file processor, which is the main object
+that carries out the conversion.
+"""
 import json
-import subprocess
 
-from ffconv import profiles
-
-
-def execute_cmd(cmd):
-    """
-    Wrapper around subprocess' Popen/communicate usage pattern, capturing
-    output and errors (which are raised).
-
-    :param cmd: shell command as string
-    :return: output of command
-    """
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
-        output = b''
-        for line in iter(process.stdout.readline, b''):
-            if b'Error' in line:
-                raise ValueError(line.decode('utf-8'))
-            else:
-                output += line
-
-        retcode = process.poll()
-        if retcode:
-            raise subprocess.CalledProcessError(retcode, process.args, output=output)
-
-    # All good, decode output and return it
-    return output.decode('utf-8').lower()
-
-
-def log(msg, level=0):
-    parts = [' ' * (2 * level - 1), '- ' if level else '', msg]
-    print(''.join(parts))
+from . import profiles
+from .utils import execute_cmd, log
+from .stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor
 
 
 class FileProcessor(object):
@@ -57,28 +33,36 @@ class FileProcessor(object):
     @staticmethod
     def _build_merge_command(inputs, maps, meta, output):
         """
-        Build merge command (if we need to make a conversion) as a list of strings.
+        Build merge command (if we need to make a conversion) as a list of
+        strings.
         """
         cmd = []
         if len(inputs) > 1:
             # Build merge command and execute it
             cmd.append('ffmpeg')
+
+            # Add each of the resulting inputs
             for input in inputs:
                 cmd.extend(['-i', input])
+
+            # Add each of the maps
             for map in maps:
                 cmd.extend(['-map', map])
+
+            # Extend with metadata
             cmd.extend(meta)
+
+            # Copy all streams (they are already converted)
             cmd.extend(['-c', 'copy'])
             cmd.append(output)
+
+        # Return command as list
         return cmd
 
     @staticmethod
     def clean_up(files):
         """
         Remove the given files.
-
-        :param files: files used as input in the final merge
-        :return:
         """
         cmd = ['rm']
         cmd.extend(files)
@@ -95,9 +79,7 @@ class FileProcessor(object):
 
     def process(self):
         """
-        Main method, used to process a file completely.
-
-        :return: processing stats
+        Main process method
         """
         log('Processing file <input:{} profile:{} output:{}>'.format(self.input, self.profile['name'], self.output))
 
@@ -217,140 +199,3 @@ class FileProcessor(object):
         cmd = ['mv', self.tmp_file, self.input]
         execute_cmd(cmd)
         self.output = self.input
-
-
-class StreamProcessor(object):
-    media_type = None
-
-    def __init__(self, input, stream, profile):
-        self.input = input
-        self.index = stream['index']
-        self.codec = stream['codec_name']
-        self.language = stream.get('tags', {}).get('language')
-        if self.language == 'und':
-            self.language = None
-        self.allowed_codecs = profile[self.media_type]['codecs']
-        self.target_codec = self.allowed_codecs[0]
-        self.target_container = profile[self.media_type]['container']
-        self.output = '{}-{}.{}'.format(self.media_type, self.index, self.target_container)
-
-    @property
-    def must_convert(self):
-        """
-        Do we need to convert this stream?
-
-        :return:
-        """
-        return self.codec not in self.allowed_codecs
-
-    def clean_up(self):
-        raise NotImplementedError('{} cannot clean up {} yet.'.format(self.__class__.__name__, self.media_type))
-
-    def convert(self):
-        raise NotImplementedError('{} cannot convert {} yet.'.format(self.__class__.__name__, self.media_type))
-
-    def process(self):
-        """
-        Process this stream, which might mean converting it or not.
-
-        :return: processed stream data
-        """
-        log('Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec), 2)
-        if self.must_convert:
-            log('Converting...', 3)
-            self.convert()
-            log('Cleaning up file...', 3)
-            self.clean_up()
-            self.input = self.output
-            self.index = 0
-            log('Done', 2)
-
-        else:
-            log('Skipping, no conversion required', 3)
-
-        res = {'input': self.input, 'index': self.index}
-        if self.language:
-            res['language'] = self.language
-        return res
-
-
-class VideoProcessor(StreamProcessor):
-    media_type = 'video'
-
-    def __init__(self, input, stream, profile):
-        super(VideoProcessor, self).__init__(input, stream, profile)
-        self.refs = int(stream['refs'])
-        height = int(stream.get('height', 720))
-        self.max_refs = profile[self.media_type]['max_refs'].get(height, 5)
-        self.target_profile = profile[self.media_type]['profile']
-        self.target_level = profile[self.media_type]['level']
-        self.target_preset = profile[self.media_type]['preset']
-        self.target_quality = profile[self.media_type]['quality']
-
-    @property
-    def must_convert(self):
-        return any((super(VideoProcessor, self).must_convert,
-                    self.refs > self.max_refs))
-
-    def clean_up(self):
-        pass
-
-    def convert(self):
-        cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
-               '-c:v', self.target_codec, '-preset', str(self.target_preset),
-               '-crf', str(self.target_quality), '-profile:v',
-               self.target_profile, '-level', self.target_level, self.output]
-        execute_cmd(cmd)
-
-
-class AudioProcessor(StreamProcessor):
-    media_type = 'audio'
-
-    def __init__(self, input, stream, profile):
-        super(AudioProcessor, self).__init__(input, stream, profile)
-        self.channels = int(stream['channels'])
-        self.target_quality = profile[self.media_type]['quality']
-        self.target_channels = int(profile[self.media_type]['channels'])
-
-    @property
-    def must_convert(self):
-        return any((super(AudioProcessor, self).must_convert,
-                    self.channels != self.target_channels))
-
-    def clean_up(self):
-        pass
-
-    def convert(self):
-        cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
-               '-c:a', self.target_codec, '-q:a', str(self.target_quality),
-               '-ac:0', str(self.target_channels), self.output]
-        execute_cmd(cmd)
-
-
-class SubtitleProcessor(StreamProcessor):
-    media_type = 'subtitle'
-    must_convert = True
-
-    def __init__(self, input, stream, profile):
-        super(SubtitleProcessor, self).__init__(input, stream, profile)
-        self.target_encodings = profile[self.media_type]['encodings']
-
-    def clean_up(self):
-        # Remove tags (eg, <i></i>) and comments (eg, {lala})
-        cmd = ['sed', '-i', '-e', r"s/<[^>]*>//ig", '-e', r"s/{[^}]*}//ig", self.output]
-        execute_cmd(cmd)
-
-    def convert(self):
-        index = '0:{}'.format(self.index)
-        for encoding in self.target_encodings:
-            try:
-                cmd = ['ffmpeg', '-sub_charenc', encoding, '-i', self.input, '-map', index, self.output]
-                execute_cmd(cmd)
-                return
-
-            except Exception as e:
-                cmd = ['rm', self.output]
-                execute_cmd(cmd)
-
-        raise ValueError('Could not extract stream {}'.format(index))
-
