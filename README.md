@@ -27,9 +27,8 @@ For example, by using *roku*, all audio will be converted to 2-channel AAC and a
 
 ## Where?
 
-It barely works right now, and some important functionality is missing:
+It works right now, but some important functionality is missing:
 
 + Definition of profiles by users, probably as text files (json, yaml)
 + Option to *append* converted streams to original ones instead of replacing them
-+ Execution of media conversions concurrently (possibly)
 
