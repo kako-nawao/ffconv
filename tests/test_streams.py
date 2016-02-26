@@ -64,7 +64,7 @@ class VideoProcessorTest(TestCase):
         processor.convert.reset_mock()
         processor.clean_up.reset_mock()
 
-        # Attempt to process 692:8, nothing to do
+        # Attempt to process 704:8, nothing to do
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
                   'refs': 8, 'height': 704}
         processor = VideoProcessor(input, stream, profile)

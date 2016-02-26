@@ -108,7 +108,7 @@ class FileProcessorTest(TestCase):
         self.assertEqual(res, [])
 
         # Process 1 video only
-        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 1}]
+        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 1, 'height': 720}]
         res = processor.process_streams(streams)
         self.assertEqual(len(res), 1)
         self.assertEqual(VideoProcessor.process.call_count, 1)
@@ -117,7 +117,7 @@ class FileProcessorTest(TestCase):
         VideoProcessor.process.reset_mock()
 
         # Process 1 video, 2 audio, 2 subs
-        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 4},
+        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 4, 'height': 720},
                    {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 2},
                    {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 6},
                    {'codec_type': 'subtitle', 'codec_name': 'srt', 'index': 0},
@@ -143,7 +143,7 @@ class FileProcessorTest(TestCase):
         self.assertEqual(res, [])
 
         # Process 1 video, 2 audio, 2 subs
-        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 4},
+        streams = [{'codec_type': 'video', 'codec_name': 'h264', 'index': 0, 'refs': 4, 'height': 480},
                    {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 2},
                    {'codec_type': 'audio', 'codec_name': 'aac', 'index': 0, 'channels': 6},
                    {'codec_type': 'subtitle', 'codec_name': 'srt', 'index': 0},
@@ -220,7 +220,7 @@ class FileProcessorTest(TestCase):
     @patch('ffconv.stream_processors.execute_cmd', MagicMock())
     @patch('ffconv.file_processor.execute_cmd', MagicMock())
     @patch('ffconv.file_processor.FileProcessor.probe', MagicMock(return_value=[
-        {'index': 0, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4},
+        {'index': 0, 'codec_type': 'video', 'codec_name': 'h264', 'refs': 4, 'height': 720},
         {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac', 'channels': 6, 'tags': {'LANGUAGE': 'eng'}},
         {'index': 2, 'codec_type': 'subtitle', 'codec_name': 'ass', 'tags': {'LANGUAGE': 'spa'}},
         {'index': 3, 'codec_type': 'subtitle', 'codec_name': 'srt', 'tags': {'LANGUAGE': 'por'}},
