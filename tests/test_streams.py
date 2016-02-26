@@ -64,6 +64,26 @@ class VideoProcessorTest(TestCase):
         processor.convert.reset_mock()
         processor.clean_up.reset_mock()
 
+        # Attempt to process 692:8, nothing to do
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
+                  'refs': 8, 'height': 704}
+        processor = VideoProcessor(input, stream, profile)
+        res = processor.process()
+        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 7})
+        self.assertFalse(processor.convert.called)
+        self.assertFalse(processor.clean_up.called)
+
+        # Attempt process for 2160:8 refs, needs to convert (default ref is 4)
+        stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'h264',
+                  'refs': 8, 'height': 2160}
+        processor = VideoProcessor(input, stream, profile)
+        res = processor.process()
+        self.assertEqual(res, {'input': 'video-7.mp4', 'index': 0})
+        self.assertTrue(processor.convert.called)
+        self.assertTrue(processor.clean_up.called)
+        processor.convert.reset_mock()
+        processor.clean_up.reset_mock()
+
         # Attempt to process xvid, turn to h264
         stream = {'index': 7, 'codec_type': 'video', 'codec_name': 'xvid',
                   'refs': 1, 'height': 720}
