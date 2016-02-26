@@ -108,9 +108,19 @@ class VideoProcessor(StreamProcessor):
         # Set input reference frames value
         self.refs = int(stream['refs'])
 
-        # Set target values for frames, profile, level, preset and quality
-        height = int(stream.get('height', 720))
-        self.max_refs = profile[self.media_type]['max_refs'].get(height, 5)
+        # Assert height is included in stream
+        if 'height' not in stream:
+            raise KeyError("Height not specified in video stream.")
+
+        # Get height and set target for ref frames (default is 4)
+        self.max_refs = 4
+        height = int(stream['height'])
+        for h, f in sorted(profile[self.media_type]['max_refs'].items()):
+            if height <= h:
+                self.max_refs = f
+                break
+
+        # Set target values for profile, level, preset and quality
         self.target_profile = profile[self.media_type]['profile']
         self.target_level = profile[self.media_type]['level']
         self.target_preset = profile[self.media_type]['preset']
