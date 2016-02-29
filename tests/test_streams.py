@@ -34,7 +34,7 @@ class VideoProcessorTest(TestCase):
         processor = VideoProcessor(input, stream, profile)
         processor.convert()
         cmd = ['ffmpeg', '-i', 'some-film.mkv', '-map', '0:0', '-c:v', 'h264',
-               '-preset', 'slower', '-crf', '22', '-profile:v', 'high',
+               '-preset', 'slow', '-crf', '22', '-profile:v', 'high',
                '-level', '4.1', 'video-0.mp4']
         self.assertTrue(ecmd.called)
         ecmd.assert_called_once_with(cmd)

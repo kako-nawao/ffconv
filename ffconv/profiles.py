@@ -28,7 +28,7 @@ ROKU = {
             1080: 4
         },
         'quality': 22,
-        'preset': 'slower'
+        'preset': 'slow'
     },
     'audio': {
         'codecs': ['mp3', 'aac', 'flac'],
