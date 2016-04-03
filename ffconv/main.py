@@ -2,38 +2,45 @@
 __author__ = 'kako'
 
 import argparse
+import logging
 
 from .file_processor import FileProcessor
 
 
+# Init logger with basic config
+logger = logging.getLogger()
+logging.basicConfig(format='%(levelname)s:%(message)s')
+
+# Init parser and add params
 parser = argparse.ArgumentParser(description='Convert media files')
-
-parser.add_argument('input', type=str, help='Name of the input file to convert')
-parser.add_argument('profile', type=str, help='Name of the profile to use (roku, etc)')
-parser.add_argument('--output', type=str, help='Name of the merged output file, if '
-                                               'not supplied original file is removed')
-
-args = parser.parse_args()
+parser.add_argument('input', type=str,
+                    help='Name of the input file to convert')
+parser.add_argument('profile', type=str,
+                    help='Name of the profile to use (roku, etc)')
+parser.add_argument('--output', '-o', type=str,
+                    help='Name of the merged output file, if not supplied original file is removed')
+parser.add_argument('--debug', '-d', action='store_true',
+                    help='Use debug mode, increasing verbosity and skipping clean ups')
 
 
 def process():
-    print('ffconv 0.0.1 -----------')
+    # Parse arguments
+    args = parser.parse_args()
 
-    processor = FileProcessor(args.input, args.output, args.profile)
+    # Set logger level to debug
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
     try:
+        # Process
+        processor = FileProcessor(args.input, args.output, args.profile)
         processor.process()
 
     except Exception as e:
-        print('Error: {}'.format(e))
-        fname = 'ffconv-failed.log'
-        return_code = 1
+        # Error, exit with 1
+        logger.critical(e)
+        exit(1)
 
     else:
-        fname = 'ffconv-success.log'
-        return_code = 0
-
-    with open(fname, 'a') as f:
-        f.write('{}\n'.format(args.input))
-
-    print('')
-    exit(return_code)
+        # All good, exit with 0
+        exit(0)
