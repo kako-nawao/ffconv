@@ -1,0 +1,25 @@
+{
+  "video": {
+    "quality": 22,
+    "preset": "slow",
+    "container": "mp4",
+    "max_refs": {
+      "720": 8,
+      "1080": 4
+    },
+    "level": "4.1",
+    "codecs": ["h264"],
+    "profile": "high"
+  },
+  "subtitle": {
+    "container": "srt",
+    "codecs": ["srt"],
+    "encodings": ["utf-8", "iso-8859-1"]
+  },
+  "name": "Roku",
+  "audio": {
+    "container": "mp3",
+    "channels": 2,
+    "codecs": ["mp3", "aac", "flac"], "quality": 2
+  }
+}

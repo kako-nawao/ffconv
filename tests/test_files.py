@@ -5,7 +5,6 @@ import subprocess
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from ffconv import profiles
 from ffconv.file_processor import FileProcessor
 from ffconv.stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor, execute_cmd
 

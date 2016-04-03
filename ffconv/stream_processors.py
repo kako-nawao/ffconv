@@ -122,7 +122,7 @@ class VideoProcessor(StreamProcessor):
         self.max_refs = 4
         height = int(stream['height'])
         for h, f in sorted(profile[self.media_type]['max_refs'].items()):
-            if height <= h:
+            if height <= int(h):
                 self.max_refs = f
                 break
 

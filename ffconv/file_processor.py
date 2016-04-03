@@ -5,8 +5,7 @@ that carries out the conversion.
 import json
 import logging
 
-from . import profiles
-from .utils import execute_cmd
+from .utils import execute_cmd, get_profile
 from .stream_processors import StreamProcessor
 
 
@@ -84,11 +83,8 @@ class FileProcessor(object):
         self.error = None
         self.logger = logging.getLogger()
 
-        # Set profile if found (or raise an error)
-        try:
-            self.profile = getattr(profiles, profile.upper())
-        except AttributeError:
-            raise ValueError('Profile {} could not be found'.format(profile))
+        # Set profile
+        self.profile = get_profile(profile)
 
     def __str__(self):
         return 'File <{}>'.format(self.input)

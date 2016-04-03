@@ -21,7 +21,7 @@ setup(
     name='ffconv',
 
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.2.0',
+    version='0.3.0',
 
     description='Process media files with ffmpeg',
     long_description=long_description,
@@ -51,7 +51,9 @@ setup(
     package_data={},
 
     # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
-    data_files=[],
+    data_files=[
+        ('/var/ffconv/profiles', ['data/profiles/roku.json'])
+    ],
 
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow

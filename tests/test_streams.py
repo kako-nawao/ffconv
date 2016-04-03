@@ -3,7 +3,6 @@ __author__ = 'kako'
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from ffconv import profiles
 from ffconv.stream_processors import VideoProcessor, AudioProcessor, SubtitleProcessor
 
 
