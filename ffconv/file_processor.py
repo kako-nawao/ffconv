@@ -3,9 +3,10 @@ This module contains the actual file processor, which is the main object
 that carries out the conversion.
 """
 import json
+import logging
 
 from . import profiles
-from .utils import execute_cmd, log
+from .utils import execute_cmd
 from .stream_processors import StreamProcessor
 
 
@@ -81,12 +82,16 @@ class FileProcessor(object):
         self.input = in_file
         self.output = output
         self.error = None
+        self.logger = logging.getLogger()
 
         # Set profile if found (or raise an error)
         try:
             self.profile = getattr(profiles, profile.upper())
         except AttributeError:
             raise ValueError('Profile {} could not be found'.format(profile))
+
+    def __str__(self):
+        return 'File <{}>'.format(self.input)
 
     def process(self):
         """
@@ -95,42 +100,44 @@ class FileProcessor(object):
         processor objects and then merges all resulting stream files into
         a single output file.
         """
-        log('Processing file <input:{} profile:{} output:{}>'\
-            .format(self.input, self.profile['name'], self.output))
-
         # First step, probe for file streams
-        log('Probing...', 1)
+        self.logger.debug('{}: probing'.format(self))
         original_streams = self.probe()
 
         # Process streams
-        log('Processing streams...', 1)
+        self.logger.debug('{}: processing {} streams'.format(self, len(original_streams)))
         processed_streams = self.process_streams(original_streams)
 
         # By now we could have an error
         if self.error:
-            # We've an error, clean up all files
+            # Update inputs in case we want to clean up
             inputs = {s['input'] for s in processed_streams}\
                 .difference([self.input])
         else:
             # No errors, merge the files
-            log('Merging streams into output...', 1)
+            self.logger.debug('{}: merging streams'.format(self))
             inputs = self.merge(processed_streams)
 
         # Clean up if we have inputs
-        # Note: input can be empty if no streams were converted, in which case
-        # the original file is our output, so we do nothing
+        # Note: input can be empty if no streams were converted, in which
+        # case the original file is our output, so we do nothing
         if inputs:
-            log('Cleaning temporary files...', 1)
-            if not (self.output or self.error):
-                self.replace_original()
-            self.clean_up(inputs)
+            if self.logger.isEnabledFor(logging.DEBUG):
+                # Debug mode, skip cleanup
+                self.logger.debug('{}: skipping clean up (DEBUG)'.format(self))
+
+            else:
+                # Clean up and remove temps
+                self.logger.debug('{}: cleaning up'.format(self))
+                if not (self.output or self.error):
+                    self.replace_original()
+                self.clean_up(inputs)
 
         # If we had an error, raise it
         if isinstance(self.error, Exception):
             raise self.error
 
-        # No errors, log that we're done and return result
-        log('Done')
+        # No errors, return result
         return {'streams': len(processed_streams), 'output': self.output}
 
     def probe(self):
@@ -165,13 +172,10 @@ class FileProcessor(object):
                     processor = processor_cls(self.input, stream, self.profile)
                     result = processor.process()
                     processed_streams.append(result)
-                else:
-                    log('Skipping stream {}, media type {} not recognized'\
-                        .format(stream['index'], stream['codec_type']), 2)
 
         except Exception as e:
             # This means some stream could not be processed, clean up and stop
-            log('Error: {}'.format(e), 2)
+            self.logger.debug('{}: {}'.format(self, e))
             self.error = e
 
         return processed_streams
@@ -198,7 +202,7 @@ class FileProcessor(object):
 
             except Exception as e:
                 # Oops, merge failed, log an set error
-                log('Error: {}'.format(e), 2)
+                self.logger.debug('{}: {}'.format(self, e))
                 self.error = e
                 inputs.append(cmd[-1])
 

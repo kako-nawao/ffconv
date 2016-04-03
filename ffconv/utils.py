@@ -1,6 +1,7 @@
 """
 Utility functions used by processors.
 """
+import logging
 import subprocess
 from subprocess import CalledProcessError
 
@@ -27,11 +28,3 @@ def execute_cmd(cmd):
 
     # All good, decode output and return it
     return output.decode('utf-8').lower()
-
-
-def log(msg, level=0):
-    """
-    Print a message with the defined indentation level.
-    """
-    parts = [' ' * (2 * level - 1), '- ' if level else '', msg]
-    print(''.join(parts))

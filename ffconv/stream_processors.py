@@ -3,7 +3,9 @@ This module contains the actual stream processors, which do the actual
 media conversions.
 """
 
-from .utils import execute_cmd, log, CalledProcessError
+import logging
+
+from .utils import execute_cmd, CalledProcessError
 
 
 class StreamProcessor(object):
@@ -32,8 +34,14 @@ class StreamProcessor(object):
         self.output = '{}-{}.{}'.format(self.media_type, self.index,
                                         self.target_container)
 
+        # Set logger
+        self.logger = logging.getLogger()
+
         # Set stream-specific data
         self._init_stream(stream, profile)
+
+    def __str__(self):
+        return 'Stream <#{} {} {}>'.format(self.index, self.media_type, self.codec)
 
     def _init_stream(self, *args):
         """
@@ -72,20 +80,18 @@ class StreamProcessor(object):
 
         :return: processed stream data
         """
-        log('Processing stream <index:{} type:{} codec:{}>...'.format(self.index, self.media_type, self.codec), 2)
         if self.must_convert:
             # Must convert, run conversion and clean-up
-            log('Converting...', 3)
+            self.logger.debug('{}: converting to {}'.format(self, self.target_codec))
             self.convert()
-            log('Cleaning up file...', 3)
+            self.logger.debug('{}: cleaning up'.format(self))
             self.clean_up()
             self.input = self.output
             self.index = 0
-            log('Done', 2)
 
         else:
             # Nothing to do
-            log('Skipping, no conversion required', 3)
+            self.logger.debug('{}: skipping, no conversion required'.format(self))
 
         # Build and return data: input file, index and language
         # (used by merger)
@@ -246,7 +252,7 @@ class SubtitleProcessor(StreamProcessor):
                 execute_cmd(cmd)
 
             else:
-                # Worked: return to leave method
+                # Worked
                 return
 
         # If none worked, we raise an exception
