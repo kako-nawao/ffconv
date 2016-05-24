@@ -24,8 +24,8 @@ ROKU = {
         'profile': 'high',
         'level': '4.1',
         'max_refs': {
-            720: 8,
-            1080: 4
+            720: 9,
+            1080: 5
         },
         'quality': 22,
         'preset': 'slow'
