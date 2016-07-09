@@ -33,7 +33,7 @@ ROKU = {
     'audio': {
         'codecs': ['mp3', 'aac', 'flac'],
         'container': 'mp3',
-        'channels': 2,
+        'max_channels': 2,
         'quality': 2
     },
     'subtitle': {
