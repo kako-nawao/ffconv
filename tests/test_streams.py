@@ -110,7 +110,7 @@ class AudioProcessorTest(TestCase):
         self.assertEqual(processor.target_codec, 'mp3')
         self.assertEqual(processor.output, 'audio-3.mp3')
         self.assertEqual(processor.channels, 2)
-        self.assertEqual(processor.target_channels, 2)
+        self.assertEqual(processor.max_channels, 2)
 
     @patch('ffconv.stream_processors.execute_cmd')
     def test_convert(self, ecmd):
@@ -134,6 +134,17 @@ class AudioProcessorTest(TestCase):
         # Attempt simple process, nothing to do
         stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac',
                   'channels': 2, 'tags': {'language': 'por'}}
+        processor = AudioProcessor(input, stream, profile)
+        res = processor.process()
+        self.assertEqual(res, {'input': 'some-film.mkv', 'index': 1,
+                               'language': 'por'})
+        self.assertFalse(processor.convert.called)
+        self.assertFalse(processor.clean_up.called)
+
+        # Attempt process with less channels, should do nothing
+        stream = {'index': 1, 'codec_type': 'audio', 'codec_name': 'aac',
+                  'channels': 1, 'tags': {'language': 'por'}}
+
         processor = AudioProcessor(input, stream, profile)
         res = processor.process()
         self.assertEqual(res, {'input': 'some-film.mkv', 'index': 1,

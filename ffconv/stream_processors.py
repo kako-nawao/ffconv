@@ -173,8 +173,8 @@ class AudioProcessor(StreamProcessor):
         self.channels = int(stream['channels'])
 
         # Set target quality and channels
+        self.max_channels = int(profile[self.media_type]['max_channels'])
         self.target_quality = profile[self.media_type]['quality']
-        self.target_channels = int(profile[self.media_type]['channels'])
 
     @property
     def must_convert(self):
@@ -183,7 +183,7 @@ class AudioProcessor(StreamProcessor):
         number of channels is acceptable.
         """
         return any((super(AudioProcessor, self).must_convert,
-                    self.channels != self.target_channels))
+                    self.channels > self.max_channels))
 
     def clean_up(self):
         """
@@ -198,7 +198,7 @@ class AudioProcessor(StreamProcessor):
         """
         cmd = ['ffmpeg', '-i', self.input, '-map', '0:{}'.format(self.index),
                '-c:a', self.target_codec, '-q:a', str(self.target_quality),
-               '-ac:0', str(self.target_channels), self.output]
+               '-ac:0', str(self.max_channels), self.output]
         execute_cmd(cmd)
 
 
