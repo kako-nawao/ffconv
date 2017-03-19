@@ -17,6 +17,6 @@ script:
   - if [[ $TRAVIS_PYTHON_VERSION == 3.4 ]]; then tox -e py34; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then tox -e py35; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then tox -e py36; fi
-after_success:
+after_script:
   - pip install codecov
   - codecov
