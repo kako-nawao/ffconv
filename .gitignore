@@ -1,9 +1,21 @@
-.idea
-.coverage
-.sonar
+# Python bytecode
 __pycache__
-coverage.xml
-ffconv.egg-info
-test-reports
-nose2-junit.xml
+*.pyc
+
+# JetBrains IDE (PyCharm)
+/.idea
+
+# SonarQube cache and logs
+/.sonar
+
+# Testing env, coverage
+/.coverage
+/.tox
+/coverage
+/coverage.xml
+
+# Packaging artifacts
+/build
+/dist
+/ffconv.egg-info/
 
